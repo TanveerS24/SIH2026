@@ -138,51 +138,44 @@ All seeded demo accounts use the standard password: `DemoPass123!` and TOTP bypa
 
 ## Local Host Development Commands
 
-If running outside Docker:
+Run the server and client independently from their own folders:
+
+### 1. Server (`server/`)
 ```bash
-# Install all dependencies across monorepo
+cd server
 npm install
-
-# Run backend Fastify API
-npm run dev:api
-
-# Run Expo / React Native web client
-npm run dev:web
-
-# Run automated tests
-npm test
-
-# Run strict TypeScript check across all packages
-npm run typecheck
-
-# Database migrations & seed
-npm run db:migrate
-npm run db:seed
+npm run dev
 ```
+- **API URL**: `http://localhost:4000`
+- **Swagger Docs**: `http://localhost:4000/docs`
+
+### 2. Client (`client/`)
+```bash
+cd client
+npm install
+npx expo start
+```
+- **React Native Metro Bundler**: Scan the QR code with Expo Go, or press `a` for Android emulator, `i` for iOS simulator.
 
 ---
 
-## Monorepo Directory Structure
+## Directory Structure
 
 ```
 pramaan/
-├── apps/
-│   └── mobile-web/             # Expo React Native multi-surface app (Web + Mobile)
-│       ├── app/                # Expo Router file-based routes
-│       ├── services/           # Typed API client, SQLite offline queue, secure storage
-│       └── stores/             # Zustand stores for auth & sync
+├── server/                     # Fastify TypeScript backend API
+│   ├── prisma/                 # PostgreSQL schema and synthetic seed
+│   ├── src/                    # Auth, Cases, Documents, Custody, Workflow, Audit, etc.
+│   └── package.json            # Server dependencies & scripts (npm run dev)
 │
-├── api/                        # Fastify TypeScript backend service
-│   ├── prisma/                 # PostgreSQL schema and comprehensive synthetic seed
-│   ├── src/
-│   │   ├── modules/            # Auth, Cases, Documents, Custody, Workflow, Audit, Search, Analytics, Access, Sync
-│   │   ├── plugins/            # JWT authentication, RBAC guards
-│   │   └── services/           # MinIO S3 storage, Ledger, DocumentAIService, Audit, Malware scanner
-│   └── tests/                  # Automated Vitest test suites
+├── client/                     # React Native (Expo) mobile & web application
+│   ├── app/                    # Expo Router file-based screens
+│   ├── src/ui/                 # Design system components & tokens
+│   └── package.json            # Client dependencies & scripts (npx expo start)
 │
-├── packages/
-│   ├── shared-types/           # Shared Zod schemas, TypeScript types & DTOs
-│   └── ui/                     # Design system tokens and digital register UI components
+├── shared/                     # Shared Zod validation schemas, TypeScript types & DTOs
+│   ├── src/                    # auth, cases, documents, custody, workflow, audit, etc.
+│   └── package.json            # Shared package manifest
 │
 ├── docker-compose.yml          # Development container orchestration
 ├── docker-compose.prod.yml     # Production-style configuration

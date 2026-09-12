@@ -60,7 +60,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: server/Dockerfile
     container_name: pramaan_api
     restart: unless-stopped
     depends_on:
@@ -105,7 +105,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: client/Dockerfile
     container_name: pramaan_frontend
     restart: unless-stopped
     depends_on:

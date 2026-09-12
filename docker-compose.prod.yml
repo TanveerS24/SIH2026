@@ -43,7 +43,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: server/Dockerfile
       target: runner
     container_name: pramaan_prod_api
     restart: always

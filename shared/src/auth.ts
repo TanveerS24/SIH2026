@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RoleEnum } from './roles';
+import { RoleEnum } from './roles.js';
 
 export const LoginRequestSchema = z.object({
   email: z.string().email('Invalid official email address'),
