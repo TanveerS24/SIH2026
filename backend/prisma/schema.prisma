@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  INVESTIGATION_OFFICER
+  WOMEN_HELP_DESK_OFFICER
+  PROSECUTOR
+  JUDGE
+  NCRB_ANALYST
+}
+
+enum CaseStatus {
+  UNDER_INVESTIGATION
+  EVIDENCE_COLLECTION
+  FORENSIC_PENDING
+  CHARGE_SHEET_PREPARED
+  FILED
+  JUDICIAL_PROCEEDINGS
+  DISPOSED
+}
+
+enum CasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL_URGENT
+}
+
+enum SensitivityLevel {
+  PUBLIC
+  INTERNAL
+  SENSITIVE
+  HIGHLY_SENSITIVE
+}
+
+enum DocumentType {
+  FIR
+  WITNESS_STATEMENT
+  VICTIM_STATEMENT
+  FORENSIC_REPORT
+  MEDICAL_EXAM_REPORT
+  SEIZURE_MEMO
+  PHOTOGRAPHIC_EVIDENCE
+  CHARGE_SHEET
+  PANCHNAMA
+  SUPPLEMENTARY_REPORT
+}
+
+enum DocumentStatus {
+  PENDING_SCAN
+  SCAN_PASSED
+  SCAN_FLAGGED
+  OCR_PROCESSED
+  VERIFIED
+  TAMPER_FLAGGED
+  REDACTED
+  ARCHIVED
+}
+
+enum CustodyAction {
+  UPLOADED
+  MALWARE_SCANNED
+  OCR_PROCESSED
+  REVIEWED
+  SIGNED
+  VERIFIED
+  INTEGRITY_CHECK_FAILED
+  SHARED
+  DOWNLOADED
+  REDACTED
+  FILED
+  ACCESS_REQUESTED
+  ACCESS_GRANTED
+  ACCESS_DENIED
+}
+
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  MFA_VERIFIED
+  LOGOUT
+  CASE_CREATED
+  CASE_VIEWED
+  DOCUMENT_UPLOADED
+  DOCUMENT_VIEWED
+  DOCUMENT_DOWNLOADED
+  DOCUMENT_VERIFIED
+  DOCUMENT_TAMPER_DETECTED
+  DOCUMENT_SIGNED
+  DOCUMENT_REDACTED
+  CHARGE_SHEET_FILED
+  CHARGE_SHEET_ATTEMPT_BLOCKED
+  SEARCH_PERFORMED
+  ACCESS_REQUEST_SUBMITTED
+  ACCESS_REQUEST_APPROVED
+  ACCESS_REQUEST_DENIED
+  ELEVATED_CASE_ACCESS_UTILIZED
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum SyncStatus {
+  QUEUED
+  SYNCING
+  SYNCED
+  FAILED
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  passwordHash     String
+  name             String
+  badgeNumber      String           @unique
+  department       String
+  jurisdiction     String
+  role             Role
+  totpSecret       String?
+  totpEnabled      Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  caseAssignments  CaseAssignment[]
+  uploadedDocs     Document[]
+  signatures       Signature[]
+  custodyEvents    CustodyEvent[]
+  auditLogs        AuditLog[]
+  accessRequests   AccessRequest[]  @relation("Requester")
+  reviewedRequests AccessRequest[]  @relation("Reviewer")
+  syncRecords      SyncRecord[]
+  refreshTokens    RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Case {
+  id                  String                @id @default(uuid())
+  caseNumber          String                @unique
+  title               String
+  description         String
+  firNumber           String?
+  firDate             DateTime?
+  jurisdiction        String
+  policeStation       String
+  bnsSections         String[]
+  priority            CasePriority          @default(HIGH)
+  sensitivity         SensitivityLevel      @default(HIGHLY_SENSITIVE)
+  status              CaseStatus            @default(UNDER_INVESTIGATION)
+  incidentDate        DateTime?
+  incidentLocation    String
+  victimName          String?
+  victimAge           Int?
+  suspects            String[]              @default([])
+  isFiled             Boolean               @default(false)
+  filedAt             DateTime?
+  filingLedgerTxId    String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  assignments         CaseAssignment[]
+  documents           Document[]
+  custodyEvents       CustodyEvent[]
+  auditLogs           AuditLog[]
+  workflowRequirements WorkflowRequirement[]
+  accessRequests      AccessRequest[]
+  searchIndex         SearchIndex?
+}
+
+model CaseAssignment {
+  id         String   @id @default(uuid())
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role
+  assignedAt DateTime @default(now())
+
+  @@unique([caseId, userId])
+}
+
+model Document {
+  id                  String            @id @default(uuid())
+  caseId              String
+  case                Case              @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentType        DocumentType
+  title               String
+  originalFileName    String
+  storageKey          String
+  mimeType            String
+  fileSize            Int
+  sha256Hash          String
+  status              DocumentStatus    @default(OCR_PROCESSED)
+  extractedText       String?
+  detectedBnsSections String[]          @default([])
+  detectedParties     Json?
+  ledgerTxId          String?
+  uploadedBy          String
+  uploader            User              @relation(fields: [uploadedBy], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  versions            DocumentVersion[]
+  custodyEvents       CustodyEvent[]
+  signatures          Signature[]
+}
+
+model DocumentVersion {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNum Int      @default(1)
+  storageKey String
+  sha256Hash String
+  changeLog  String?
+  createdAt  DateTime @default(now())
+}
+
+model Signature {
+  id           String   @id @default(uuid())
+  documentId   String
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  role         Role
+  signatureSvg String?
+  signatureHash String
+  signedAt     DateTime @default(now())
+}
+
+model CustodyEvent {
+  id           String        @id @default(uuid())
+  caseId       String
+  case         Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentId   String?
+  document     Document?     @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  action       CustodyAction
+  actorId      String
+  actor        User          @relation(fields: [actorId], references: [id])
+  actorRole    Role
+  timestamp    DateTime      @default(now())
+  documentHash String?
+  previousHash String?
+  ledgerTxId   String?
+  metadata     Json?
+  ipAddress    String?
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  actorId    String
+  actor      User        @relation(fields: [actorId], references: [id])
+  actorRole  Role
+  action     AuditAction
+  resource   String
+  resourceId String?
+  caseId     String?
+  case       Case?       @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  timestamp  DateTime    @default(now())
+  ipAddress  String?
+  userAgent  String?
+  result     String      // SUCCESS, DENIED, FAILURE, BLOCKED
+  reason     String?
+  metadata   Json?
+}
+
+model WorkflowRequirement {
+  id                 String   @id @default(uuid())
+  caseId             String
+  case               Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type               String   // FORENSIC_REPORT, WITNESS_STATEMENT, REQUIRED_SIGNATURES, EVIDENCE_METADATA, OFFICER_VERIFICATION
+  title              String
+  description        String
+  isSatisfied        Boolean  @default(false)
+  mandatoryForFiling Boolean  @default(true)
+  satisfiedAt        DateTime?
+  satisfiedBy        String?
+  documentRefId      String?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AccessRequest {
+  id            String              @id @default(uuid())
+  caseId        String
+  case          Case                @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  requesterId   String
+  requester     User                @relation("Requester", fields: [requesterId], references: [id])
+  reason        String
+  status        AccessRequestStatus @default(PENDING)
+  durationHours Int                 @default(24)
+  expiresAt     DateTime?
+  reviewedBy    String?
+  reviewer      User?               @relation("Reviewer", fields: [reviewedBy], references: [id])
+  reviewedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model SearchIndex {
+  id         String   @id @default(uuid())
+  caseId     String   @unique
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fullText   String
+  keywords   String[]
+  lastIndexed DateTime @default(now())
+}
+
+model SyncRecord {
+  id             String     @id @default(uuid())
+  localId        String
+  idempotencyKey String     @unique
+  userId         String
+  user           User       @relation(fields: [userId], references: [id])
+  operation      String
+  payload        Json
+  status         SyncStatus @default(QUEUED)
+  errorMessage   String?
+  serverRecordId String?
+  retryCount     Int        @default(0)
+  createdAt      DateTime   @default(now())
+  syncedAt       DateTime?
+}
+
+model LedgerBlock {
+  id           String   @id @default(uuid())
+  index        Int      @unique
+  previousHash String
+  blockHash    String   @unique
+  payloadHash  String
+  payloadType  String   // DOCUMENT_INTEGRITY, CUSTODY_EVENT, CHARGE_SHEET_FILING
+  payloadData  Json
+  timestamp    DateTime @default(now())
+  validatorId  String   @default("NODE_NCRB_GENESIS_VALIDATOR")
+}
