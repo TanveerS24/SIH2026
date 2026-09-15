@@ -1,14 +1,24 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  useWindowDimensions,
+  Modal,
+} from 'react-native';
 import { Slot, useRouter, usePathname } from 'expo-router';
-import { colors, typography, StatusTag, Button } from '@pramaan/ui';
+import { colors, typography } from '@pramaan/ui';
 import { useAuthStore, DEMO_ACCOUNTS } from '../../stores/authStore';
-import { Role } from '@pramaan/shared-types';
 
 export default function WebLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout, switchDemoRole } = useAuthStore();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const navItems = [
     { label: 'DASHBOARD', path: '/(web)/dashboard', icon: '📊' },
@@ -19,23 +29,122 @@ export default function WebLayout() {
     { label: 'ACCESS REQUESTS', path: '/(web)/access-requests', icon: '🛡️' },
   ];
 
+  const handleNav = (path: string) => {
+    setIsDrawerOpen(false);
+    router.push(path as any);
+  };
+
+  const renderNavContent = () => (
+    <View style={styles.sidebarInner}>
+      <View>
+        <View style={styles.navHeaderRow}>
+          <Text style={styles.navSectionHeader}>REGISTRY NAVIGATION</Text>
+          {isMobile && (
+            <TouchableOpacity onPress={() => setIsDrawerOpen(false)} style={styles.closeDrawerBtn}>
+              <Text style={styles.closeDrawerText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {navItems.map((item) => {
+          const isActive = pathname.startsWith(item.path.replace('/(web)', '')) || pathname === item.path;
+          return (
+            <TouchableOpacity
+              key={item.path}
+              onPress={() => handleNav(item.path)}
+              style={[styles.navBtn, isActive && styles.navBtnActive]}
+            >
+              <Text style={styles.navIcon}>{item.icon}</Text>
+              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <View style={styles.sidebarFooter}>
+        <Text style={styles.nodeStatusTitle}>LEDGER NODE STATUS</Text>
+        <View style={styles.nodeStatusRow}>
+          <View style={styles.nodeDot} />
+          <Text style={styles.nodeStatusText}>PRIMARY VALIDATOR: SYNCED</Text>
+        </View>
+        <Text style={styles.nodeSub}>BLOCKCHAIN SIMULATION ACTIVE</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       {/* Top Header Bar */}
       <View style={styles.topbar}>
         <View style={styles.brandRow}>
+          {isMobile && (
+            <TouchableOpacity
+              onPress={() => setIsDrawerOpen(true)}
+              style={styles.hamburgerBtn}
+              accessibilityLabel="Open Navigation Menu"
+            >
+              <Text style={styles.hamburgerIcon}>☰</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.sealBox}>
             <Text style={styles.sealIcon}>⚖</Text>
           </View>
           <View>
             <Text style={styles.brandTitle}>PRAMAAN</Text>
-            <Text style={styles.brandSubtitle}>NATIONAL EVIDENCE & CUSTODY LEDGER</Text>
+            <Text style={styles.brandSubtitle}>
+              {isMobile ? 'EVIDENCE LEDGER' : 'NATIONAL EVIDENCE & CUSTODY LEDGER'}
+            </Text>
           </View>
         </View>
 
-        {/* Role Preset Switcher in Header */}
-        <View style={styles.roleSwitcherBar}>
-          <Text style={styles.switcherLabel}>SWITCH ACTIVE ROLE:</Text>
+        {/* Desktop Role Preset Switcher in Header */}
+        {!isMobile && (
+          <View style={styles.roleSwitcherBar}>
+            <Text style={styles.switcherLabel}>SWITCH ACTIVE ROLE:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
+              {DEMO_ACCOUNTS.map((acc) => {
+                const isCurrent = user?.role === acc.role;
+                return (
+                  <TouchableOpacity
+                    key={acc.role}
+                    onPress={() => switchDemoRole(acc.role)}
+                    style={[styles.rolePill, isCurrent && styles.rolePillActive]}
+                  >
+                    <Text style={[styles.rolePillText, isCurrent && styles.rolePillTextActive]}>
+                      {acc.role.replace(/_/g, ' ')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* User Badge & Actions */}
+        <View style={styles.userSection}>
+          {!isMobile && (
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{user?.name || 'Officer'}</Text>
+              <Text style={styles.userMeta}>
+                {user?.role.replace(/_/g, ' ')} • {user?.badgeNumber}
+              </Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
+            <Text style={styles.fieldViewText}>📱 FIELD</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>LOGOUT</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Mobile Sub-header: Role Switcher Bar */}
+      {isMobile && (
+        <View style={styles.mobileRoleBar}>
+          <Text style={styles.mobileRoleLabel}>ROLE:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
             {DEMO_ACCOUNTS.map((acc) => {
               const isCurrent = user?.role === acc.role;
@@ -43,10 +152,7 @@ export default function WebLayout() {
                 <TouchableOpacity
                   key={acc.role}
                   onPress={() => switchDemoRole(acc.role)}
-                  style={[
-                    styles.rolePill,
-                    isCurrent && styles.rolePillActive,
-                  ]}
+                  style={[styles.rolePill, isCurrent && styles.rolePillActive]}
                 >
                   <Text style={[styles.rolePillText, isCurrent && styles.rolePillTextActive]}>
                     {acc.role.replace(/_/g, ' ')}
@@ -56,53 +162,31 @@ export default function WebLayout() {
             })}
           </ScrollView>
         </View>
-
-        {/* User Badge & Actions */}
-        <View style={styles.userSection}>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.name || 'Officer'}</Text>
-            <Text style={styles.userMeta}>
-              {user?.role.replace(/_/g, ' ')} • {user?.badgeNumber}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
-            <Text style={styles.fieldViewText}>📱 FIELD APP</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>LOGOUT</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      )}
 
       {/* Main Area: Sidebar + Content */}
       <View style={styles.body}>
-        <View style={styles.sidebar}>
-          <Text style={styles.navSectionHeader}>REGISTRY NAVIGATION</Text>
-          {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.path.replace('/(web)', '')) || pathname === item.path;
-            return (
-              <TouchableOpacity
-                key={item.path}
-                onPress={() => router.push(item.path as any)}
-                style={[styles.navBtn, isActive && styles.navBtnActive]}
-              >
-                <Text style={styles.navIcon}>{item.icon}</Text>
-                <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        {/* Desktop Sidebar */}
+        {!isMobile && <View style={styles.sidebar}>{renderNavContent()}</View>}
 
-          <View style={styles.sidebarFooter}>
-            <Text style={styles.nodeStatusTitle}>LEDGER NODE STATUS</Text>
-            <View style={styles.nodeStatusRow}>
-              <View style={styles.nodeDot} />
-              <Text style={styles.nodeStatusText}>PRIMARY VALIDATOR: SYNCED</Text>
+        {/* Mobile Navigation Drawer Modal */}
+        {isMobile && (
+          <Modal
+            visible={isDrawerOpen}
+            animationType="fade"
+            transparent
+            onRequestClose={() => setIsDrawerOpen(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <TouchableOpacity
+                style={styles.backdrop}
+                activeOpacity={1}
+                onPress={() => setIsDrawerOpen(false)}
+              />
+              <View style={styles.drawerSidebar}>{renderNavContent()}</View>
             </View>
-            <Text style={styles.nodeSub}>BLOCKCHAIN SIMULATION ACTIVE</Text>
-          </View>
-        </View>
+          </Modal>
+        )}
 
         {/* Main Content View */}
         <View style={styles.content}>
@@ -119,41 +203,50 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topbar: {
-    height: 60,
+    height: 56,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDark,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     zIndex: 10,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  hamburgerBtn: {
+    padding: 6,
+    marginRight: 6,
+  },
+  hamburgerIcon: {
+    fontSize: 20,
+    color: colors.primary,
+    fontWeight: '800',
+  },
   sealBox: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     backgroundColor: colors.primaryLight,
     borderWidth: 1,
     borderColor: colors.primary,
     borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   sealIcon: {
-    fontSize: 18,
+    fontSize: 16,
     color: colors.primary,
   },
   brandTitle: {
     fontFamily: typography.fontSerif,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   brandSubtitle: {
     fontFamily: typography.fontSans,
@@ -167,7 +260,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     flex: 1,
-    maxWidth: 640,
+    maxWidth: 580,
+  },
+  mobileRoleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  mobileRoleLabel: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.textMuted,
+    marginRight: 6,
   },
   switcherLabel: {
     fontFamily: typography.fontSans,
@@ -181,11 +290,11 @@ const styles = StyleSheet.create({
   },
   rolePill: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 2,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     marginRight: 6,
   },
   rolePillActive: {
@@ -194,7 +303,7 @@ const styles = StyleSheet.create({
   },
   rolePillText: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.textSecondary,
   },
@@ -204,20 +313,20 @@ const styles = StyleSheet.create({
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   userInfo: {
     alignItems: 'flex-end',
   },
   userName: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textPrimary,
   },
   userMeta: {
     fontFamily: typography.fontMono,
-    fontSize: 10,
+    fontSize: 9,
     color: colors.primary,
   },
   fieldViewBtn: {
@@ -257,9 +366,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRightWidth: 1,
     borderRightColor: colors.border,
+  },
+  sidebarInner: {
+    flex: 1,
     paddingVertical: 16,
     paddingHorizontal: 12,
     justifyContent: 'space-between',
+  },
+  navHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 8,
   },
   navSectionHeader: {
     fontFamily: typography.fontSans,
@@ -267,13 +386,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textMuted,
     letterSpacing: 0.6,
-    marginBottom: 8,
-    paddingHorizontal: 8,
+  },
+  closeDrawerBtn: {
+    padding: 4,
+  },
+  closeDrawerText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textMuted,
   },
   navBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 10,
     borderRadius: 2,
     marginBottom: 4,
@@ -289,7 +414,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textSecondary,
     letterSpacing: 0.3,
@@ -303,6 +428,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 10,
     borderRadius: 2,
+    marginTop: 16,
   },
   nodeStatusTitle: {
     fontFamily: typography.fontSans,
@@ -334,6 +460,29 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontSans,
     fontSize: 8,
     color: colors.textMuted,
+  },
+  modalOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  drawerSidebar: {
+    width: 260,
+    height: '100%',
+    backgroundColor: colors.surface,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    zIndex: 100,
   },
   content: {
     flex: 1,

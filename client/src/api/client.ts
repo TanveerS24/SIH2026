@@ -1,6 +1,30 @@
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { storage } from '../storage';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+export function getApiUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // When running via Expo (on physical device or emulator), extract the dev machine host IP
+  const hostUri = Constants.expoConfig?.hostUri ?? (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    if (host) {
+      return `http://${host}:4000`;
+    }
+  }
+
+  // Android emulator loopback alias to host machine
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:4000';
+  }
+
+  return 'http://localhost:4000';
+}
+
+export const API_URL = getApiUrl();
 
 export class BaseApiClient {
   protected baseUrl: string;

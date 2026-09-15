@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, typography, Panel, StatusTag, Button, RegisterRow } from '@pramaan/ui';
@@ -9,6 +9,8 @@ import { api } from '../../services/api';
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   const { data: cases = [], isLoading: casesLoading } = useQuery({
     queryKey: ['cases'],
@@ -27,16 +29,18 @@ export default function DashboardScreen() {
   const isAnalyst = role === 'NCRB_ANALYST';
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, isMobile && styles.containerMobile]}>
       {/* Role Banner */}
-      <View style={styles.roleBanner}>
-        <View>
-          <Text style={styles.welcomeText}>WELCOME, {user?.name.toUpperCase()}</Text>
-          <Text style={styles.roleTitle}>
+      <View style={[styles.roleBanner, isMobile && styles.roleBannerMobile]}>
+        <View style={isMobile ? styles.textWrapMobile : { flex: 1 }}>
+          <Text style={[styles.welcomeText, isMobile && styles.welcomeTextMobile]}>
+            WELCOME, {user?.name.toUpperCase()}
+          </Text>
+          <Text style={[styles.roleTitle, isMobile && styles.roleTitleMobile]}>
             {user?.department} • JURISDICTION: {user?.jurisdiction.toUpperCase()}
           </Text>
         </View>
-        <View style={styles.badgeWrap}>
+        <View style={[styles.badgeWrap, isMobile && styles.badgeWrapMobile]}>
           <StatusTag label={`AUTHORIZATION: ${role?.replace(/_/g, ' ')}`} variant="info" />
         </View>
       </View>
@@ -220,6 +224,9 @@ const styles = StyleSheet.create({
   container: {
     padding: 24,
   },
+  containerMobile: {
+    padding: 12,
+  },
   roleBanner: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -229,15 +236,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
     flexWrap: 'wrap',
     gap: 10,
+  },
+  roleBannerMobile: {
+    padding: 14,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  textWrapMobile: {
+    width: '100%',
   },
   welcomeText: {
     fontFamily: typography.fontSerif,
     fontSize: 18,
     fontWeight: '800',
     color: colors.primary,
+  },
+  welcomeTextMobile: {
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: 0.3,
   },
   roleTitle: {
     fontFamily: typography.fontSans,
@@ -247,50 +268,60 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: 0.5,
   },
+  roleTitleMobile: {
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
   badgeWrap: {
     alignItems: 'flex-end',
   },
+  badgeWrapMobile: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
   metricsGrid: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
     flexWrap: 'wrap',
   },
   metricCard: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 140,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 2,
-    padding: 16,
+    padding: 12,
   },
   metricLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: colors.textMuted,
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   metricVal: {
     fontFamily: typography.fontMono,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metricSub: {
     fontFamily: typography.fontSans,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
   },
   actionPanel: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   shortcutsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
 });

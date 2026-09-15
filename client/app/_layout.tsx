@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useSyncStore } from '../stores/syncStore';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 import { colors, typography } from '@pramaan/ui';
 
 const queryClient = new QueryClient({
@@ -21,6 +22,7 @@ function RootNavigator() {
   const initSync = useSyncStore((s) => s.initSync);
   const segments = useSegments();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     initAuth();
@@ -45,15 +47,17 @@ function RootNavigator() {
   }, [isAuthenticated, isLoading, segments, user]);
 
   return (
-    <View style={styles.rootContainer}>
+    <View style={[styles.rootContainer, { paddingTop: Platform.OS !== 'web' ? insets.top : 0 }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       {/* Official Prototype Disclaimer Banner */}
       <View style={styles.disclaimerBanner}>
-        <Text style={styles.disclaimerText}>
-          NATIONAL CRIME RECORDS BODY • WOMEN SAFETY DIVISION — PRAMAAN EVIDENCE LEDGER (PROTOTYPE / SYNTHETIC DATA)
+        <Text style={styles.disclaimerText} numberOfLines={1}>
+          NCRB • WOMEN SAFETY DIVISION — PRAMAAN EVIDENCE LEDGER (PROTOTYPE)
         </Text>
       </View>
 
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(web)" options={{ headerShown: false }} />
         <Stack.Screen name="(mobile)" options={{ headerShown: false }} />
@@ -64,16 +68,18 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RootNavigator />
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <RootNavigator />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary,
   },
   disclaimerBanner: {
     backgroundColor: colors.primary,
@@ -86,10 +92,10 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.textInverse,
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     textAlign: 'center',
   },
 });
