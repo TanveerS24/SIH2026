@@ -1,43 +1,29 @@
-# Multi-stage Dockerfile for Pramaan Fastify API
-FROM node:20-alpine AS base
+FROM node:20-alpine
+
 WORKDIR /app
 
-# Dependencies stage
-FROM base AS dependencies
-COPY package.json package-lock.json* ./
-COPY packages/shared-types/package.json ./packages/shared-types/
-COPY packages/ui/package.json ./packages/ui/
-COPY backend/package.json ./backend/
+# Install system dependencies for native modules and Prisma
+RUN apk add --no-cache openssl libc6-compat python3 make g++
 
-RUN npm install --workspaces --include-workspace-root
+# 1. Setup shared types dependency
+WORKDIR /app/shared
+COPY shared/package.json shared/tsconfig.json ./
+COPY shared/src ./src
+RUN npm install
 
-# Build stage
-FROM dependencies AS builder
-COPY tsconfig.base.json ./
-COPY packages/shared-types ./packages/shared-types
-COPY packages/ui ./packages/ui
-COPY backend ./backend
+# 2. Setup server
+WORKDIR /app/server
+COPY server/package.json server/package-lock.json ./
+RUN npm install
 
-WORKDIR /app/backend
+# Copy Prisma schema and generate Prisma client
+COPY server/prisma ./prisma
 RUN npx prisma generate
-RUN npm run build
 
-# Production Runner
-FROM base AS runner
-WORKDIR /app
-ENV NODE_ENV=production
+# Copy tsconfig and source code
+COPY server/tsconfig.json ./
+COPY server/src ./src
 
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY --from=dependencies /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
-COPY --from=dependencies /app/backend/node_modules ./backend/node_modules
-
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/packages/shared-types ./packages/shared-types
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/prisma ./backend/prisma
-COPY --from=builder /app/backend/package.json ./backend/package.json
-
-WORKDIR /app/backend
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx prisma/seed.ts && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx tsx prisma/seed.ts && npx tsx src/main.ts"]

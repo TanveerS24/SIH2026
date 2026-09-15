@@ -1,25 +1,25 @@
 # Dockerfile for Pramaan Expo Web Client
-FROM node:20-alpine AS base
+FROM node:20-alpine
+
 WORKDIR /app
 
-# Dependencies
-FROM base AS dependencies
-COPY package.json package-lock.json* ./
-COPY packages/shared-types/package.json ./packages/shared-types/
-COPY packages/ui/package.json ./packages/ui/
-COPY frontend/package.json ./frontend/
+# Setup shared types dependency
+WORKDIR /app/shared
+COPY shared/package.json shared/tsconfig.json ./
+COPY shared/src ./src
+RUN npm install
 
-RUN npm install --workspaces --include-workspace-root
+# Setup client
+WORKDIR /app/client
+COPY client/package.json client/package-lock.json* ./
+RUN npm install
 
-# Build / Run Stage
-FROM dependencies AS runner
-WORKDIR /app
-COPY tsconfig.base.json ./
-COPY packages/shared-types ./packages/shared-types
-COPY packages/ui ./packages/ui
-COPY frontend ./frontend
+# Copy source code
+COPY client/tsconfig.json client/app.json* client/babel.config.js* ./
+COPY client/src ./src
+COPY client/app ./app
+COPY client/assets ./assets
 
-WORKDIR /app/frontend
 EXPOSE 8081
 
 CMD ["npm", "run", "web"]
