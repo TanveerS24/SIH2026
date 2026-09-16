@@ -1,0 +1,399 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { colors, typography, Panel, Input, Button, StatusTag, OfficialSeal } from '@pramaan/ui';
+import { useAuthStore } from '../../stores/authStore';
+
+export default function ProfileScreen() {
+  const { user, updateProfile, isLoading, error, clearError } = useAuthStore();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(user?.name || '');
+  const [department, setDepartment] = useState(user?.department || '');
+  const [jurisdiction, setJurisdiction] = useState(user?.jurisdiction || '');
+
+  // Password update state
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const handleSaveProfile = async () => {
+    setLocalError(null);
+    setFeedback(null);
+    clearError();
+
+    const payload: any = {
+      name,
+      department,
+      jurisdiction,
+    };
+
+    if (showPasswordSection && newPassword) {
+      if (!currentPassword) {
+        setLocalError('Current password is required to set a new password.');
+        return;
+      }
+      if (newPassword.length < 8) {
+        setLocalError('New password must be at least 8 characters long.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setLocalError('New password confirmation does not match.');
+        return;
+      }
+      payload.currentPassword = currentPassword;
+      payload.newPassword = newPassword;
+    }
+
+    try {
+      await updateProfile(payload);
+      setFeedback('Official profile information successfully updated.');
+      setIsEditing(false);
+      setShowPasswordSection(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      setLocalError(e.message || 'Failed to update profile.');
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={[styles.container, isMobile && styles.containerMobile]}>
+      {/* Header Banner */}
+      <View style={styles.header}>
+        <View style={styles.headerTitleRow}>
+          <OfficialSeal size={40} />
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.pageTitle}>OFFICER IDENTITY & PROFILE SCRUTINY</Text>
+            <Text style={styles.pageSub}>
+              Digital Chain-of-Custody Authentication & Cryptographic Credentials
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {(error || localError) && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>[PROFILE ALERT] {localError || error}</Text>
+        </View>
+      )}
+
+      {feedback && (
+        <View style={styles.successBanner}>
+          <Text style={styles.successText}>[STATUS CONFIRMED] {feedback}</Text>
+        </View>
+      )}
+
+      {/* Identity Card Panel */}
+      <Panel
+        title="STATUTORY CREDENTIAL IDENTIFICATION"
+        subtitle="Immutable public parameters recorded in National Police Directory"
+        variant="ledger"
+        action={
+          !isEditing ? (
+            <Button
+              title="EDIT PROFILE DETAILS"
+              onPress={() => setIsEditing(true)}
+              variant="outline"
+              size="sm"
+            />
+          ) : (
+            <Button
+              title="CANCEL EDITING"
+              onPress={() => {
+                setIsEditing(false);
+                setName(user?.name || '');
+                setDepartment(user?.department || '');
+                setJurisdiction(user?.jurisdiction || '');
+                setShowPasswordSection(false);
+              }}
+              variant="ghost"
+              size="sm"
+            />
+          )
+        }
+      >
+        <View style={styles.idCard}>
+          <View style={styles.idGrid}>
+            <View style={styles.idField}>
+              <Text style={styles.idLabel}>OFFICIAL NAME</Text>
+              {isEditing ? (
+                <Input value={name} onChangeText={setName} placeholder="Official Name" />
+              ) : (
+                <Text style={styles.idValPrimary}>{user?.name || 'N/A'}</Text>
+              )}
+            </View>
+
+            <View style={styles.idField}>
+              <Text style={styles.idLabel}>SERVICE / BADGE ID</Text>
+              <Text style={styles.idValMono}>{user?.badgeNumber || 'N/A'}</Text>
+            </View>
+
+            <View style={styles.idField}>
+              <Text style={styles.idLabel}>OFFICIAL EMAIL</Text>
+              <Text style={styles.idValMono}>{user?.email || 'N/A'}</Text>
+            </View>
+
+            <View style={styles.idField}>
+              <Text style={styles.idLabel}>STATUTORY CADRE / ROLE</Text>
+              <View style={{ marginTop: 2 }}>
+                <StatusTag
+                  label={user?.role?.replace(/_/g, ' ') || 'OFFICER'}
+                  variant="verified"
+                />
+              </View>
+            </View>
+
+            <View style={styles.idField}>
+              <Text style={styles.idLabel}>DEPARTMENT / WING</Text>
+              {isEditing ? (
+                <Input value={department} onChangeText={setDepartment} placeholder="Department" />
+              ) : (
+                <Text style={styles.idValText}>{user?.department || 'N/A'}</Text>
+              )}
+            </View>
+
+            <View style={styles.idField}>
+              <Text style={styles.idLabel}>JURISDICTION</Text>
+              {isEditing ? (
+                <Input value={jurisdiction} onChangeText={setJurisdiction} placeholder="Jurisdiction" />
+              ) : (
+                <Text style={styles.idValText}>{user?.jurisdiction || 'N/A'}</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Password Section Toggle when editing */}
+          {isEditing && (
+            <View style={styles.editActionsSection}>
+              <TouchableOpacity
+                onPress={() => setShowPasswordSection(!showPasswordSection)}
+                style={styles.togglePasswordBtn}
+              >
+                <Text style={styles.togglePasswordText}>
+                  {showPasswordSection ? '[-] CANCEL PASSWORD CHANGE' : '[+] UPDATE SECURITY PASSWORD'}
+                </Text>
+              </TouchableOpacity>
+
+              {showPasswordSection && (
+                <View style={styles.passwordForm}>
+                  <Input
+                    label="CURRENT PASSWORD"
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                    secureTextEntry
+                    placeholder="Enter current password"
+                  />
+                  <Input
+                    label="NEW SECURITY PASSWORD (MIN 8 CHARS)"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry
+                    placeholder="Enter new password"
+                  />
+                  <Input
+                    label="CONFIRM NEW SECURITY PASSWORD"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    placeholder="Confirm new password"
+                  />
+                </View>
+              )}
+
+              <View style={styles.saveBtnRow}>
+                <Button
+                  title={isLoading ? 'SAVING MODIFICATIONS...' : 'SAVE PROFILE MODIFICATIONS →'}
+                  onPress={handleSaveProfile}
+                  loading={isLoading}
+                  variant="primary"
+                />
+              </View>
+            </View>
+          )}
+        </View>
+      </Panel>
+
+      {/* Security & Cryptographic Session Diagnostics */}
+      <Panel
+        title="CRYPTOGRAPHIC IDENTITY & NON-REPUDIATION STATUS"
+        subtitle="Active session parameters under BSA Section 63/65B Compliance"
+      >
+        <View style={styles.securityRow}>
+          <View style={styles.secItem}>
+            <Text style={styles.secLabel}>AUTHENTICATION SCHEME</Text>
+            <Text style={styles.secVal}>HMAC-SHA256 JWT & ROTATING REFRESH TOKEN</Text>
+          </View>
+          <View style={styles.secItem}>
+            <Text style={styles.secLabel}>CHAIN-OF-CUSTODY COMPLIANCE</Text>
+            <Text style={[styles.secVal, { color: colors.verified }]}>
+              BHARATIYA SAKSHYA ADHINIYAM (BSA), 2023 COMPLIANT
+            </Text>
+          </View>
+          <View style={styles.secItem}>
+            <Text style={styles.secLabel}>AUDIT NON-REPUDIATION</Text>
+            <Text style={styles.secVal}>EVERY ACTION LOGGED WITH ACTOR BADGE & IP ADDRESS</Text>
+          </View>
+        </View>
+      </Panel>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 24,
+  },
+  containerMobile: {
+    padding: 12,
+  },
+  header: {
+    marginBottom: 20,
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    borderRadius: 2,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontFamily: typography.fontSerif,
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.8,
+  },
+  pageSub: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  errorBanner: {
+    backgroundColor: colors.alertLight,
+    borderWidth: 1,
+    borderColor: colors.alertBorder,
+    padding: 10,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.alertDark,
+  },
+  successBanner: {
+    backgroundColor: colors.verifiedLight,
+    borderWidth: 1,
+    borderColor: colors.verifiedBorder,
+    padding: 10,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  successText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.verifiedDark,
+  },
+  idCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 2,
+    padding: 12,
+  },
+  idGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  idField: {
+    width: '48%',
+    minWidth: 240,
+    marginBottom: 8,
+  },
+  idLabel: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  idValPrimary: {
+    fontFamily: typography.fontSans,
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  idValMono: {
+    fontFamily: typography.fontMono,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  idValText: {
+    fontFamily: typography.fontSans,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  editActionsSection: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  togglePasswordBtn: {
+    marginBottom: 12,
+  },
+  togglePasswordText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  passwordForm: {
+    backgroundColor: colors.surfaceMuted,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  saveBtnRow: {
+    marginTop: 8,
+  },
+  securityRow: {
+    gap: 12,
+    padding: 6,
+  },
+  secItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: 8,
+  },
+  secLabel: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  secVal: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+});

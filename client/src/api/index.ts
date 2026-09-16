@@ -24,6 +24,9 @@ export * from './sync.api';
 export const api = {
   // Auth
   login: authApi.login.bind(authApi),
+  register: authApi.register.bind(authApi),
+  updateProfile: authApi.updateProfile.bind(authApi),
+  mockLogin: authApi.mockLogin.bind(authApi),
   verifyMfa: authApi.verifyMfa.bind(authApi),
   logout: authApi.logout.bind(authApi),
 

@@ -30,6 +30,21 @@ export async function buildApp(): Promise<FastifyInstance> {
           };
         },
       },
+      redact: {
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'req.body.password',
+          'req.body.totpCode',
+          'req.body.sessionToken',
+          'req.body.refreshToken',
+          'req.body.token',
+          'req.body.currentPassword',
+          'req.body.newPassword',
+          'res.headers["set-cookie"]',
+        ],
+        censor: '[REDACTED_SECURE]',
+      },
     },
     genReqId: () => `req-${crypto.randomBytes(6).toString('hex')}`,
     bodyLimit: 50 * 1024 * 1024, // 50MB for forensics/evidence uploads

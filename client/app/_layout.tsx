@@ -33,8 +33,9 @@ function RootNavigator() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isPublicRoute = segments[0] === '+not-found' || (segments as string[]).includes('terms');
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !isPublicRoute) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
       // Direct WHDO to mobile field view, others to web dashboard
@@ -49,10 +50,10 @@ function RootNavigator() {
   return (
     <View style={[styles.rootContainer, { paddingTop: Platform.OS !== 'web' ? insets.top : 0 }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      {/* Official Prototype Disclaimer Banner */}
+      {/* Official Institutional Banner */}
       <View style={styles.disclaimerBanner}>
         <Text style={styles.disclaimerText} numberOfLines={1}>
-          NCRB • WOMEN SAFETY DIVISION — PRAMAAN EVIDENCE LEDGER (PROTOTYPE)
+          NATIONAL CRIME RECORDS BODY • BHARATIYA SAKSHYA ADHINIYAM (BSA) COMPLIANT EVIDENCE LEDGER
         </Text>
       </View>
 
@@ -61,8 +62,10 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(web)" options={{ headerShown: false }} />
         <Stack.Screen name="(mobile)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
     </View>
+
   );
 }
 

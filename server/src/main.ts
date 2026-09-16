@@ -1,4 +1,3 @@
-import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { env } from './config/index.js';
 import { storageService } from './services/index.js';
@@ -24,12 +23,5 @@ export async function start(): Promise<void> {
   }
 }
 
-const isDirectRun =
-  process.argv[1] &&
-  (fileURLToPath(import.meta.url) === process.argv[1] ||
-    process.argv[1].endsWith('main.ts') ||
-    process.argv[1].endsWith('main.js'));
+start();
 
-if (isDirectRun) {
-  start();
-}

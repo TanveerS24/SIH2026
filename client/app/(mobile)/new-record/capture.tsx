@@ -37,10 +37,10 @@ export default function MobileCaptureScreen() {
         <View style={styles.viewfinderFrame}>
           <Text style={styles.viewfinderTarget}>[ ⛶ ]</Text>
           <Text style={styles.viewfinderText}>
-            {isSimulatingCamera ? '⚡ EXPOSING & ENCRYPTING SENSOR CAPTURE...' : 'ALIGN DOCUMENT OR PHYSICAL EXHIBIT IN FRAME'}
+            {isSimulatingCamera ? '[PROCESSING] EXPOSING & ENCRYPTING SENSOR CAPTURE...' : 'ALIGN DOCUMENT OR PHYSICAL EXHIBIT IN FRAME'}
           </Text>
           <View style={styles.gpsBadge}>
-            <Text style={styles.gpsText}>📍 GPS: 13.0418° N, 80.2341° E (CHENNAI SOUTH)</Text>
+            <Text style={styles.gpsText}>GPS TELEMETRY: 13.0418° N, 80.2341° E (CHENNAI SOUTH)</Text>
           </View>
         </View>
 

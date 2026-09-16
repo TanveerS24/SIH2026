@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { Role, UserPayload } from '@pramaan/shared-types';
+import { Role, UserPayload, RegisterRequest, UpdateProfileRequest } from '@pramaan/shared-types';
 import { storage } from '../services/storage';
 import { api } from '../services/api';
+import { logger } from '../src/utils/logger';
 
 export interface DemoAccount {
   email: string;
@@ -28,7 +29,10 @@ interface AuthState {
   error: string | null;
 
   initAuth: () => Promise<void>;
-  login: (email: string, password?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterRequest) => Promise<void>;
+  updateProfile: (payload: UpdateProfileRequest) => Promise<void>;
+  mockLogin: (role: Role) => Promise<void>;
   verifyMfa: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   switchDemoRole: (role: Role) => Promise<void>;
@@ -60,9 +64,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 
-  login: async (email: string, password = 'DemoPass123!') => {
+  login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
+      logger.info('AUTH', 'Initiating credentials verification');
       const res = await api.login({ email, password });
       set({
         mfaPending: true,
@@ -71,7 +76,62 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
     } catch (err: any) {
+      logger.error('AUTH', 'Login failed', err);
       set({ error: err.message || 'Login failed', isLoading: false });
+    }
+  },
+
+  register: async (payload: RegisterRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      logger.info('AUTH', 'Submitting officer registration');
+      await api.register(payload);
+      set({ isLoading: false });
+    } catch (err: any) {
+      logger.error('AUTH', 'Registration failed', err);
+      set({ error: err.message || 'Registration failed', isLoading: false });
+      throw err;
+    }
+  },
+
+  updateProfile: async (payload: UpdateProfileRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      logger.info('AUTH', 'Updating officer profile');
+      const res = await api.updateProfile(payload);
+      if (res.user) {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...res.user } : res.user,
+          isLoading: false,
+        }));
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (err: any) {
+      logger.error('AUTH', 'Profile update failed', err);
+      set({ error: err.message || 'Failed to update profile', isLoading: false });
+      throw err;
+    }
+  },
+
+  mockLogin: async (role: Role) => {
+    set({ isLoading: true, error: null });
+    try {
+      logger.info('AUTH', `Provisioning rapid tokens for role: ${role}`);
+      const res = await api.mockLogin({ role });
+      set({
+        user: res.user,
+        isAuthenticated: true,
+        mfaPending: false,
+        mfaSessionToken: null,
+        mfaEmail: null,
+        isLoading: false,
+        error: null,
+      });
+    } catch (err: any) {
+      logger.error('AUTH', 'Mock login failed', err);
+      set({ error: err.message || 'Sandbox login failed', isLoading: false });
+      throw err;
     }
   },
 
@@ -91,6 +151,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
     } catch (err: any) {
+      logger.error('AUTH', 'MFA verification failed', err);
       set({ error: err.message || 'MFA verification failed', isLoading: false });
     }
   },
@@ -108,11 +169,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   switchDemoRole: async (role: Role) => {
-    const acc = DEMO_ACCOUNTS.find((a) => a.role === role);
-    if (!acc) return;
-    await get().login(acc.email, 'DemoPass123!');
-    await get().verifyMfa('123456');
+    await get().mockLogin(role);
   },
 
   clearError: () => set({ error: null }),
 }));
+

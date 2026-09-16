@@ -30,7 +30,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
     <View style={[styles.container, { backgroundColor: bgColor, borderColor }, style]}>
       <View style={styles.textWrap}>
         <Text style={[styles.statusText, { color: textColor }]}>
-          {isOffline ? '⚡ FIELD MODE: OFFLINE' : isSyncing ? '🔄 SYNCING QUEUE...' : '● ONLINE (PENDING SYNC)'}
+          {isOffline ? '[OFFLINE] FIELD SENSOR MODE' : isSyncing ? '[SYNCING] PROCESSING QUEUE...' : '[ONLINE] PENDING SYNC'}
         </Text>
         <Text style={[styles.detailText, { color: textColor }]}>
           {queuedCount} record{queuedCount !== 1 ? 's' : ''} in local encrypted SQLite queue

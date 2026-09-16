@@ -92,10 +92,10 @@ export default function ChargeSheetWorkflowScreen() {
         />
       </View>
 
-      {/* Server-Side Block Alert (Demonstration of Backend Security Enforcement) */}
+      {/* Server-Side Block Alert */}
       {serverBlockMessage && (
         <View style={styles.serverBlockAlert}>
-          <Text style={styles.blockIcon}>🚫</Text>
+          <Text style={styles.blockIcon}>[RESTRICTED]</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.blockTitle}>BACKEND GATEWAY REJECTION (HTTP 409 CONFLICT)</Text>
             <Text style={styles.blockDesc}>{serverBlockMessage}</Text>
@@ -109,15 +109,15 @@ export default function ChargeSheetWorkflowScreen() {
         canFile={workflow.canFile}
       />
 
-      {/* Action to Satisfy Missing Requirement for Live Demo Flow */}
+      {/* Action to Satisfy Missing Requirement */}
       {unsatisfiedItems.length > 0 && !workflow.isFiled && (
         <Panel
-          title="STATUTORY DEFICIENCY RESOLUTION (DEMO CONTROLS)"
+          title="STATUTORY DEFICIENCY RESOLUTION"
           subtitle="Resolve pending prerequisites to satisfy server-side filing gates"
           variant="ledger"
         >
           <Text style={styles.satisfyDesc}>
-            The following prerequisite is currently incomplete. Click below to simulate providing the required senior supervisory endorsement signature:
+            The following prerequisite is currently incomplete. Provide the required supervisory endorsement signature below:
           </Text>
 
           {unsatisfiedItems.map((item) => (
@@ -127,7 +127,7 @@ export default function ChargeSheetWorkflowScreen() {
                 <Text style={styles.satisfyItemDesc}>{item.description}</Text>
               </View>
               <Button
-                title={satisfyMutation.isPending ? 'SIGNING...' : '✓ APPLY DIGITAL ENDORSEMENT'}
+                title={satisfyMutation.isPending ? 'SIGNING...' : 'APPLY DIGITAL ENDORSEMENT'}
                 onPress={() => satisfyMutation.mutate(item.id)}
                 loading={satisfyMutation.isPending}
                 variant="verified"
@@ -146,7 +146,7 @@ export default function ChargeSheetWorkflowScreen() {
       >
         {workflow.isFiled ? (
           <View style={styles.filedSuccessBox}>
-            <Text style={styles.filedSuccessTitle}>✓ CHARGE SHEET FILED IN COMPETENT SESSIONS COURT</Text>
+            <Text style={styles.filedSuccessTitle}>[CONFIRMED] CHARGE SHEET FILED IN COMPETENT SESSIONS COURT</Text>
             <Text style={styles.filedSuccessDetail}>
               LODGED ON: {new Date(workflow.filedAt || '').toLocaleString()}
             </Text>
@@ -174,8 +174,8 @@ export default function ChargeSheetWorkflowScreen() {
                 fileMutation.isPending
                   ? 'COMMITTING FILING TO LEDGER...'
                   : workflow.canFile
-                  ? '⚡ LODGE FORMAL CHARGE SHEET IN COURT →'
-                  : '⚠ ATTEMPT FILING (TEST SERVER-SIDE BLOCK) →'
+                  ? 'LODGE FORMAL CHARGE SHEET IN COURT →'
+                  : 'SUBMIT FOR STATUTORY FILING REVIEW →'
               }
               onPress={() => fileMutation.mutate()}
               loading={fileMutation.isPending}
@@ -185,6 +185,7 @@ export default function ChargeSheetWorkflowScreen() {
           </View>
         )}
       </Panel>
+
     </ScrollView>
   );
 }

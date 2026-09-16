@@ -56,7 +56,7 @@ export default function DashboardScreen() {
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>EVIDENTIARY EXHIBITS ANCHORED</Text>
           <Text style={[styles.metricVal, { color: colors.verified }]}>
-            {analytics?.totalEvidenceAnchored || 24513}
+            {analytics?.totalEvidenceAnchored || 0}
           </Text>
           <Text style={styles.metricSub}>SHA-256 permissioned ledger verified</Text>
         </View>
@@ -64,14 +64,16 @@ export default function DashboardScreen() {
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>CHARGE SHEET DISPOSAL RATE</Text>
           <Text style={[styles.metricVal, { color: colors.primary }]}>
-            {analytics?.chargeSheetsFiledRate || 78.4}%
+            {analytics?.chargeSheetsFiledRate || 0}%
           </Text>
-          <Text style={styles.metricSub}>Average turnaround: 54 days</Text>
+          <Text style={styles.metricSub}>Statutory compliance benchmark</Text>
         </View>
 
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>TAMPER / INTEGRITY ALERTS</Text>
-          <Text style={[styles.metricVal, { color: colors.alert }]}>0</Text>
+          <Text style={[styles.metricVal, { color: colors.alert }]}>
+            {analytics?.evidenceTamperAlerts || 0}
+          </Text>
           <Text style={styles.metricSub}>100% cryptographic ledger consistency</Text>
         </View>
       </View>
@@ -110,8 +112,8 @@ export default function DashboardScreen() {
           {isProsecutor && (
             <>
               <Button
-                title="SCRUTINIZE CHARGE SHEET (TN-2026-001245)"
-                onPress={() => router.push('/(web)/workflows/TN-2026-001245/charge-sheet' as any)}
+                title="SCRUTINIZE PENDING CHARGE SHEETS"
+                onPress={() => router.push('/(web)/cases')}
                 variant="verified"
                 size="sm"
               />
@@ -191,31 +193,48 @@ export default function DashboardScreen() {
           />
         }
       >
-        {cases.slice(0, 4).map((c) => (
-          <RegisterRow
-            key={c.id}
-            id={c.id}
-            primaryCode={c.caseNumber}
-            title={c.title}
-            subtitle={`Jurisdiction: ${c.jurisdiction} • ${c.policeStation}`}
-            statusLabel={c.status.replace(/_/g, ' ')}
-            statusVariant={
-              c.status === 'FILED'
-                ? 'filed'
-                : c.status === 'CHARGE_SHEET_PREPARED'
-                ? 'gold'
-                : 'info'
-            }
-            metadataItems={[
-              { label: 'EXHIBITS', value: String(c.documentCount) },
-              { label: 'CUSTODY LOGS', value: String(c.custodyCount) },
-              { label: 'INVESTIGATOR', value: c.assignedOfficerName || 'General Registry' },
-            ]}
-            date={new Date(c.createdAt).toLocaleDateString()}
-            onPress={() => router.push(`/(web)/cases/${c.id}` as any)}
-          />
-        ))}
+        {cases.length === 0 ? (
+          <View style={styles.emptyStateBox}>
+            <Text style={styles.emptyStateTitle}>[CLEAN REGISTER STATE] NO CASES RECORDED</Text>
+            <Text style={styles.emptyStateDesc}>
+              There are currently no active cases registered in this jurisdiction. Click the button below to register a case and initiate chain-of-custody tracking.
+            </Text>
+            <Button
+              title="+ REGISTER OFFICIAL CASE RECORD"
+              onPress={() => router.push('/(web)/cases')}
+              variant="primary"
+              size="sm"
+              style={{ marginTop: 10 }}
+            />
+          </View>
+        ) : (
+          cases.slice(0, 4).map((c) => (
+            <RegisterRow
+              key={c.id}
+              id={c.id}
+              primaryCode={c.caseNumber}
+              title={c.title}
+              subtitle={`Jurisdiction: ${c.jurisdiction} • ${c.policeStation}`}
+              statusLabel={c.status.replace(/_/g, ' ')}
+              statusVariant={
+                c.status === 'FILED'
+                  ? 'filed'
+                  : c.status === 'CHARGE_SHEET_PREPARED'
+                  ? 'gold'
+                  : 'info'
+              }
+              metadataItems={[
+                { label: 'EXHIBITS', value: String(c.documentCount) },
+                { label: 'CUSTODY LOGS', value: String(c.custodyCount) },
+                { label: 'INVESTIGATOR', value: c.assignedOfficerName || 'General Registry' },
+              ]}
+              date={new Date(c.createdAt).toLocaleDateString()}
+              onPress={() => router.push(`/(web)/cases/${c.id}` as any)}
+            />
+          ))
+        )}
       </Panel>
+
     </ScrollView>
   );
 }
@@ -324,4 +343,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  emptyStateBox: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    borderRadius: 2,
+    marginVertical: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.6,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyStateDesc: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 480,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
 });
+

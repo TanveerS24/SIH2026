@@ -16,6 +16,7 @@ export interface InputProps {
   style?: ViewStyle;
   inputStyle?: TextStyle;
   monospace?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -32,12 +33,14 @@ export const Input: React.FC<InputProps> = ({
   style,
   inputStyle,
   monospace = false,
+  autoCapitalize,
 }) => {
   return (
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
         value={value}
+        autoCapitalize={autoCapitalize}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}

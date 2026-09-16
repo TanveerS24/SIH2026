@@ -92,13 +92,12 @@ export default function AccessRequestsScreen() {
             {isSupervisor && r.status === 'PENDING' && (
               <View style={styles.reviewActions}>
                 <Button
-                  title="✓ APPROVE ELEVATED ACCESS"
+                  title="APPROVE ELEVATED ACCESS"
                   onPress={() => reviewMutation.mutate({ id: r.id, approved: true })}
-                  variant="verified"
                   size="sm"
                 />
                 <Button
-                  title="✗ REJECT CLEARANCE"
+                  title="REJECT CLEARANCE"
                   onPress={() => reviewMutation.mutate({ id: r.id, approved: false })}
                   variant="danger"
                   size="sm"

@@ -25,7 +25,7 @@ export default function MobileSyncScreen() {
       <View style={[styles.networkCard, isOffline ? styles.netCardOffline : styles.netCardOnline]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.netTitle, { color: isOffline ? colors.alertDark : colors.verifiedDark }]}>
-            {isOffline ? '⚡ FIELD MODE: DISCONNECTED (OFFLINE)' : '● NETWORK: CONNECTED TO PRAMAAN API'}
+            {isOffline ? '[OFFLINE] FIELD SENSOR MODE: DISCONNECTED' : '[ONLINE] NETWORK: CONNECTED TO PRAMAAN API'}
           </Text>
           <Text style={styles.netSub}>
             {isOffline

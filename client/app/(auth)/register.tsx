@@ -3,25 +3,72 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useRouter } from 'expo-router';
 import { colors, typography, Button, Input, Panel, OfficialSeal } from '@pramaan/ui';
 import { useAuthStore, DEMO_ACCOUNTS } from '../../stores/authStore';
+import { Role } from '@pramaan/shared-types';
 
-export default function LoginScreen() {
+const ROLES_LIST: { role: Role; label: string }[] = [
+  { role: 'INVESTIGATION_OFFICER', label: 'Investigation Officer (IO)' },
+  { role: 'WOMEN_HELP_DESK_OFFICER', label: 'Women Help Desk Officer (WHDO)' },
+  { role: 'PROSECUTOR', label: 'Public Prosecutor' },
+  { role: 'JUDGE', label: 'Honorable Magistrate / Judge' },
+  { role: 'NCRB_ANALYST', label: 'NCRB Statistical Analyst' },
+];
+
+export default function RegisterScreen() {
   const router = useRouter();
-  const { login, mockLogin, isLoading, error, clearError } = useAuthStore();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { register, mockLogin, isLoading, error, clearError } = useAuthStore();
 
-  const handleLogin = async () => {
-    if (!email || !password) return;
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [badgeNumber, setBadgeNumber] = useState('');
+  const [role, setRole] = useState<Role>('INVESTIGATION_OFFICER');
+  const [department, setDepartment] = useState('');
+  const [jurisdiction, setJurisdiction] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const handleRegister = async () => {
+    setLocalError(null);
     clearError();
-    await login(email, password);
-    if (useAuthStore.getState().mfaPending) {
-      router.push('/(auth)/mfa');
+
+    if (!name || !email || !badgeNumber || !department || !jurisdiction || !password) {
+      setLocalError('All fields are statutory requirements and cannot be empty.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setLocalError('Password must be at least 8 characters with alphanumeric security.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setLocalError('Password confirmation does not match.');
+      return;
+    }
+
+    try {
+      await register({
+        name,
+        email,
+        badgeNumber,
+        role,
+        department,
+        jurisdiction,
+        password,
+      });
+      setSuccessMsg('Official identity registered successfully. You may now sign in.');
+      setTimeout(() => {
+        router.push('/(auth)/login');
+      }, 1500);
+    } catch (e: any) {
+      setLocalError(e.message || 'Registration failed');
     }
   };
 
-  const handleMockLogin = async (role: any) => {
+  const handleMockLogin = async (selectedRole: any) => {
     clearError();
-    await mockLogin(role);
+    await mockLogin(selectedRole);
     const currentUser = useAuthStore.getState().user;
     if (currentUser?.role === 'WOMEN_HELP_DESK_OFFICER') {
       router.replace('/(mobile)/home');
@@ -33,26 +80,37 @@ export default function LoginScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
-        {/* Header with Official National Seal */}
+        {/* Header */}
         <View style={styles.header}>
           <OfficialSeal size={52} />
           <Text style={styles.appName}>PRAMAAN</Text>
-          <Text style={styles.appSub}>
-            Digital Evidence & Tamper-Evident Chain-of-Custody Ledger
-          </Text>
+          <Text style={styles.appSub}>Official Personnel Registration & Digital Identity Enrollment</Text>
           <Text style={styles.department}>
-            National Crime Records Directorate • Ministry of Home Affairs
+            National Crime Records Directorate • Statutory Authentication Portal
           </Text>
         </View>
 
-        {error && (
+        {(error || localError) && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>[AUTHENTICATION ALERT] {error}</Text>
+            <Text style={styles.errorText}>[REGISTRATION ALERT] {localError || error}</Text>
           </View>
         )}
 
-        {/* Credentials Form */}
+        {successMsg && (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>[STATUS CONFIRMED] {successMsg}</Text>
+          </View>
+        )}
+
+        {/* Registration Form */}
         <View style={styles.form}>
+          <Input
+            label="FULL OFFICIAL NAME"
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g., Inspector Rajesh Varma"
+          />
+
           <Input
             label="OFFICIAL GOVERNMENT EMAIL"
             value={email}
@@ -60,28 +118,74 @@ export default function LoginScreen() {
             placeholder="officer.name@nic.in"
             autoCapitalize="none"
           />
+
           <Input
-            label="SECURITY CREDENTIAL / PASSWORD"
+            label="OFFICIAL SERVICE / BADGE NUMBER"
+            value={badgeNumber}
+            onChangeText={setBadgeNumber}
+            placeholder="e.g., TN-IO-4892"
+            autoCapitalize="characters"
+          />
+
+          {/* Role Selection */}
+          <Text style={styles.fieldLabel}>STATUTORY CADRE / ROLE</Text>
+          <View style={styles.rolePickerRow}>
+            {ROLES_LIST.map((r) => (
+              <TouchableOpacity
+                key={r.role}
+                onPress={() => setRole(r.role)}
+                style={[styles.roleSelectChip, role === r.role && styles.roleSelectChipActive]}
+              >
+                <Text style={[styles.roleChipText, role === r.role && styles.roleChipTextActive]}>
+                  {r.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Input
+            label="DEPARTMENT / POLICE WING"
+            value={department}
+            onChangeText={setDepartment}
+            placeholder="e.g., Women Safety Division, Crime Branch"
+          />
+
+          <Input
+            label="STATE / DISTRICT JURISDICTION"
+            value={jurisdiction}
+            onChangeText={setJurisdiction}
+            placeholder="e.g., Chennai Central"
+          />
+
+          <Input
+            label="SECURITY CREDENTIAL / PASSWORD (MIN 8 CHARS)"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            placeholder="Enter statutory password"
+            placeholder="••••••••••••"
+          />
+
+          <Input
+            label="CONFIRM SECURITY CREDENTIAL"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            placeholder="••••••••••••"
           />
 
           <Button
-            title={isLoading ? 'VERIFYING CREDENTIALS...' : 'AUTHENTICATE CREDENTIALS →'}
-            onPress={handleLogin}
+            title={isLoading ? 'ENROLLING IDENTITY...' : 'REGISTER OFFICIAL IDENTITY →'}
+            onPress={handleRegister}
             loading={isLoading}
-            disabled={!email || !password}
-            style={styles.loginBtn}
+            style={styles.registerBtn}
           />
         </View>
 
-        {/* Navigation Switch: Register Now */}
+        {/* Navigation Switch: Already registered? Login */}
         <View style={styles.switchAuthRow}>
-          <Text style={styles.switchPrompt}>New Officer or Registry Personnel?</Text>
-          <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-            <Text style={styles.switchLink}>Register Official Identity →</Text>
+          <Text style={styles.switchPrompt}>Already enrolled in the official register?</Text>
+          <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.switchLink}>Sign In to Registry →</Text>
           </TouchableOpacity>
         </View>
 
@@ -113,10 +217,10 @@ export default function LoginScreen() {
           </View>
         </Panel>
 
-        {/* Statutory Terms Link & Governance Notice */}
+        {/* Terms Link */}
         <View style={styles.footerNote}>
           <Text style={styles.footerText}>
-            Enforces strict digital evidence non-repudiation under Bharatiya Sakshya Adhiniyam, 2023 (BSA Section 63/65B).
+            Enforces strict digital evidence non-repudiation under Bharatiya Sakshya Adhiniyam, 2023.
           </Text>
           <TouchableOpacity onPress={() => router.push('/(auth)/terms')} style={styles.termsLinkWrap}>
             <Text style={styles.termsLink}>View Platform Terms & Conditions →</Text>
@@ -137,7 +241,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 620,
+    maxWidth: 640,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderDark,
@@ -189,11 +293,61 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.alertDark,
   },
+  successBanner: {
+    backgroundColor: colors.verifiedLight,
+    borderWidth: 1,
+    borderColor: colors.verifiedBorder,
+    padding: 10,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  successText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.verifiedDark,
+  },
   form: {
     marginBottom: 14,
   },
-  loginBtn: {
-    marginTop: 8,
+  fieldLabel: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.textSecondary,
+    letterSpacing: 0.6,
+    marginBottom: 6,
+    marginTop: 6,
+  },
+  rolePickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  roleSelectChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
+  },
+  roleSelectChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  roleChipText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  roleChipTextActive: {
+    color: colors.textInverse,
+  },
+  registerBtn: {
+    marginTop: 10,
   },
   switchAuthRow: {
     flexDirection: 'row',

@@ -29,8 +29,8 @@ export default function CaseFileDetailScreen() {
   // Upload modal state
   const [docTitle, setDocTitle] = useState('');
   const [docType, setDocType] = useState('FORENSIC_REPORT');
-  const [docFileName, setDocFileName] = useState('Forensic_Digital_Extraction_001.pdf');
-  const [docContentText, setDocContentText] = useState('FORENSIC EXAMINATION REPORT: Corroborates timestamps and digital communications log.');
+  const [docFileName, setDocFileName] = useState('');
+  const [docContentText, setDocContentText] = useState('');
 
   const { data: caseRecord, isLoading, error } = useQuery({
     queryKey: ['case', id],
@@ -112,7 +112,7 @@ export default function CaseFileDetailScreen() {
       {/* Cross-Case Intelligence Lead Notice (if relationships exist) */}
       {relationships && relationships.relationshipsCount > 0 && (
         <View style={styles.leadAlertBox}>
-          <Text style={styles.leadIcon}>⚡</Text>
+          <Text style={styles.leadIcon}>[CORRELATION]</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.leadTitle}>
               CROSS-CASE INTELLIGENCE CORRELATION DETECTED ({relationships.relationshipsCount} LINK)
@@ -137,7 +137,7 @@ export default function CaseFileDetailScreen() {
           style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
         >
           <Text style={[styles.tabText, activeTab === 'documents' && styles.tabTextActive]}>
-            📄 EVIDENCE DOCUMENTS ({caseRecord.documents?.length || 0})
+            EVIDENCE EXHIBITS ({caseRecord.documents?.length || 0})
           </Text>
         </TouchableOpacity>
 
@@ -146,7 +146,7 @@ export default function CaseFileDetailScreen() {
           style={[styles.tabBtn, activeTab === 'custody' && styles.tabBtnActive]}
         >
           <Text style={[styles.tabText, activeTab === 'custody' && styles.tabTextActive]}>
-            ⛓️ CHAIN OF CUSTODY ({custodyEvents.length})
+            CHAIN OF CUSTODY ({custodyEvents.length})
           </Text>
         </TouchableOpacity>
 
@@ -155,7 +155,7 @@ export default function CaseFileDetailScreen() {
           style={[styles.tabBtn, activeTab === 'workflow' && styles.tabBtnActive]}
         >
           <Text style={[styles.tabText, activeTab === 'workflow' && styles.tabTextActive]}>
-            ⚖️ CHARGE SHEET WORKFLOW
+            CHARGE SHEET WORKFLOW
           </Text>
         </TouchableOpacity>
 
@@ -164,7 +164,7 @@ export default function CaseFileDetailScreen() {
           style={[styles.tabBtn, activeTab === 'relationships' && styles.tabBtnActive]}
         >
           <Text style={[styles.tabText, activeTab === 'relationships' && styles.tabTextActive]}>
-            🔗 CROSS-CASE LEADS ({relationships?.relationshipsCount || 0})
+            CROSS-CASE LEADS ({relationships?.relationshipsCount || 0})
           </Text>
         </TouchableOpacity>
       </View>
@@ -193,13 +193,14 @@ export default function CaseFileDetailScreen() {
                 </View>
                 <View style={styles.docActions}>
                   <Button
-                    title="🔍 VERIFY INTEGRITY (LEDGER)"
+                    title="VERIFY INTEGRITY (LEDGER)"
                     onPress={() => router.push(`/(web)/documents/${doc.id}/verify` as any)}
                     variant="verified"
                     size="sm"
                   />
                 </View>
               </View>
+
 
               <Text style={styles.docTitle}>{doc.title}</Text>
               <Text style={styles.docMeta}>
@@ -297,7 +298,7 @@ export default function CaseFileDetailScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>INGEST & ANCHOR NEW EVIDENCE DOCUMENT</Text>
               <TouchableOpacity onPress={() => setShowUploadModal(false)}>
-                <Text style={styles.closeBtn}>✕</Text>
+                <Text style={styles.closeBtn}>CLOSE</Text>
               </TouchableOpacity>
             </View>
 

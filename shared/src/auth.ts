@@ -51,3 +51,33 @@ export const MFAPendingResponseSchema = z.object({
 });
 
 export type MFAPendingResponse = z.infer<typeof MFAPendingResponseSchema>;
+
+export const RegisterRequestSchema = z.object({
+  email: z.string().email('Invalid official email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  name: z.string().min(2, 'Full name required'),
+  badgeNumber: z.string().min(3, 'Official badge/service ID required'),
+  department: z.string().min(2, 'Department/Unit required'),
+  jurisdiction: z.string().min(2, 'Jurisdiction required'),
+  role: RoleEnum,
+});
+
+export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
+
+export const UpdateProfileRequestSchema = z.object({
+  name: z.string().min(2, 'Full name required').optional(),
+  department: z.string().min(2, 'Department required').optional(),
+  jurisdiction: z.string().min(2, 'Jurisdiction required').optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').optional(),
+});
+
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
+
+export const MockLoginRequestSchema = z.object({
+  role: RoleEnum.optional(),
+  email: z.string().email().optional(),
+});
+
+export type MockLoginRequest = z.infer<typeof MockLoginRequestSchema>;
+

@@ -17,10 +17,11 @@ export default function CasesRegisterScreen() {
   const [caseNumber, setCaseNumber] = useState(`TN-2026-${Math.floor(1000 + Math.random() * 9000)}`);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [jurisdiction, setJurisdiction] = useState(user?.jurisdiction || 'Chennai South');
-  const [policeStation, setPoliceStation] = useState(user?.department || 'T. Nagar AWPS');
-  const [bnsSections, setBnsSections] = useState('BNS 64, BNS 70, BNS 351');
-  const [incidentLocation, setIncidentLocation] = useState('T. Nagar Commercial Hub, Chennai');
+  const [jurisdiction, setJurisdiction] = useState(user?.jurisdiction || '');
+  const [policeStation, setPoliceStation] = useState(user?.department || '');
+  const [bnsSections, setBnsSections] = useState('');
+  const [incidentLocation, setIncidentLocation] = useState('');
+
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ['cases'],
@@ -120,7 +121,11 @@ export default function CasesRegisterScreen() {
 
         {filteredCases.length === 0 && (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyText}>No registered case records match query criteria.</Text>
+            <Text style={styles.emptyText}>
+              {cases.length === 0
+                ? '[CLEAN REGISTER STATE] No cases recorded. Click "+ REGISTER NEW CASE RECORD" to initialize a digital case file.'
+                : 'No registered case records match the query filter.'}
+            </Text>
           </View>
         )}
       </Panel>

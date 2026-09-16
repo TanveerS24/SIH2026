@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, typography, Button, Input, Panel } from '@pramaan/ui';
+import { colors, typography, Button, Input, Panel, OfficialSeal } from '@pramaan/ui';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function MFAScreen() {
   const router = useRouter();
   const { verifyMfa, mfaEmail, isLoading, error, clearError, user } = useAuthStore();
-  const [totpCode, setTotpCode] = useState('123456');
+  const [totpCode, setTotpCode] = useState('');
 
   const handleVerify = async () => {
+    if (!totpCode) return;
     clearError();
     await verifyMfa(totpCode);
     const currentUser = useAuthStore.getState().user;
@@ -22,7 +23,7 @@ export default function MFAScreen() {
     }
   };
 
-  const handleUseDemoCode = () => {
+  const handleUseSandboxCode = () => {
     setTotpCode('123456');
   };
 
@@ -30,9 +31,7 @@ export default function MFAScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <View style={styles.header}>
-          <View style={styles.mfaIconBox}>
-            <Text style={styles.mfaIcon}>🔐</Text>
-          </View>
+          <OfficialSeal size={48} />
           <Text style={styles.title}>MULTI-FACTOR AUTHENTICATION</Text>
           <Text style={styles.subtitle}>
             Enter 6-Digit TOTP Authenticator Code for:
@@ -42,7 +41,7 @@ export default function MFAScreen() {
 
         {error && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>⚠ {error}</Text>
+            <Text style={styles.errorText}>[MFA VERIFICATION ALERT] {error}</Text>
           </View>
         )}
 
@@ -51,36 +50,38 @@ export default function MFAScreen() {
             label="6-DIGIT TIME-BASED ONE-TIME PASSWORD (TOTP)"
             value={totpCode}
             onChangeText={setTotpCode}
-            placeholder="123456"
+            placeholder="Enter 6-digit code"
             monospace
-            hint="Input live code from Google Authenticator, Authy, or use synthetic demo code."
+            hint="Input code from Government Authenticator, Authy, or use sandbox bypass."
           />
 
           <Button
             title={isLoading ? 'VERIFYING TOTP CODE...' : 'AUTHENTICATE & ENTER SYSTEM →'}
             onPress={handleVerify}
             loading={isLoading}
+            disabled={!totpCode || totpCode.length < 6}
             variant="verified"
             style={styles.btn}
           />
         </View>
 
-        <Panel title="DEMO INSTRUCTIONS" variant="ledger">
+        <Panel title="SANDBOX EVALUATOR ADVISORY" variant="ledger">
           <Text style={styles.panelText}>
-            For presentation and local testing, use the pre-filled demo TOTP bypass code:
+            For local evaluation or sandbox verification, you can fill the developer test code:
           </Text>
-          <TouchableOpacity onPress={handleUseDemoCode} style={styles.codePill}>
-            <Text style={styles.codeText}>123456 (Click to Fill)</Text>
+          <TouchableOpacity onPress={handleUseSandboxCode} style={styles.codePill}>
+            <Text style={styles.codeText}>123456 [Click to Apply Test Code]</Text>
           </TouchableOpacity>
         </Panel>
 
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Return to Login</Text>
+          <Text style={styles.backText}>← Return to Official Login</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

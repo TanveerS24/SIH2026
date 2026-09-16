@@ -30,7 +30,7 @@ export const WorkflowChecklist: React.FC<WorkflowChecklistProps> = ({
               canFile ? styles.statusPillTextReady : styles.statusPillTextBlocked,
             ]}
           >
-            {canFile ? '✓ READY FOR JUDICIAL FILING' : '✗ FILING BLOCKED (INCOMPLETE)'}
+            {canFile ? '[COMPLIANT] READY FOR JUDICIAL FILING' : '[RESTRICTED] STATUTORY PREREQUISITES INCOMPLETE'}
           </Text>
         </View>
       </View>
@@ -51,10 +51,11 @@ export const WorkflowChecklist: React.FC<WorkflowChecklistProps> = ({
                   req.isSatisfied ? styles.checkIconGreen : styles.checkIconRed,
                 ]}
               >
-                {req.isSatisfied ? '✓' : '✗'}
+                {req.isSatisfied ? 'PASSED' : 'PENDING'}
               </Text>
             </View>
             <View style={styles.contentCol}>
+
               <View style={styles.reqTitleRow}>
                 <Text style={styles.reqTitle}>{req.title}</Text>
                 {req.mandatoryForFiling && (

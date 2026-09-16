@@ -9,7 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { Slot, useRouter, usePathname } from 'expo-router';
-import { colors, typography } from '@pramaan/ui';
+import { colors, typography, OfficialSeal } from '@pramaan/ui';
 import { useAuthStore, DEMO_ACCOUNTS } from '../../stores/authStore';
 
 export default function WebLayout() {
@@ -21,12 +21,13 @@ export default function WebLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const navItems = [
-    { label: 'DASHBOARD', path: '/(web)/dashboard', icon: '📊' },
-    { label: 'CASE REGISTER', path: '/(web)/cases', icon: '📁' },
-    { label: 'INTELLIGENCE SEARCH', path: '/(web)/search', icon: '🔍' },
-    { label: 'GLOBAL AUDIT TRAIL', path: '/(web)/audit', icon: '📜' },
-    { label: 'NCRB ANALYTICS', path: '/(web)/analytics', icon: '📈' },
-    { label: 'ACCESS REQUESTS', path: '/(web)/access-requests', icon: '🛡️' },
+    { label: 'DASHBOARD', path: '/(web)/dashboard', tag: 'DASH' },
+    { label: 'CASE REGISTER', path: '/(web)/cases', tag: 'CASES' },
+    { label: 'INTELLIGENCE SEARCH', path: '/(web)/search', tag: 'SEARCH' },
+    { label: 'GLOBAL AUDIT TRAIL', path: '/(web)/audit', tag: 'AUDIT' },
+    { label: 'NCRB ANALYTICS', path: '/(web)/analytics', tag: 'STATS' },
+    { label: 'ACCESS REQUESTS', path: '/(web)/access-requests', tag: 'ACCESS' },
+    { label: 'OFFICER PROFILE', path: '/(web)/profile', tag: 'PROFILE' },
   ];
 
   const handleNav = (path: string) => {
@@ -41,7 +42,7 @@ export default function WebLayout() {
           <Text style={styles.navSectionHeader}>REGISTRY NAVIGATION</Text>
           {isMobile && (
             <TouchableOpacity onPress={() => setIsDrawerOpen(false)} style={styles.closeDrawerBtn}>
-              <Text style={styles.closeDrawerText}>✕</Text>
+              <Text style={styles.closeDrawerText}>CLOSE</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -54,7 +55,7 @@ export default function WebLayout() {
               onPress={() => handleNav(item.path)}
               style={[styles.navBtn, isActive && styles.navBtnActive]}
             >
-              <Text style={styles.navIcon}>{item.icon}</Text>
+              <Text style={[styles.navTag, isActive && styles.navTagActive]}>[{item.tag}]</Text>
               <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
                 {item.label}
               </Text>
@@ -69,7 +70,11 @@ export default function WebLayout() {
           <View style={styles.nodeDot} />
           <Text style={styles.nodeStatusText}>PRIMARY VALIDATOR: SYNCED</Text>
         </View>
-        <Text style={styles.nodeSub}>BLOCKCHAIN SIMULATION ACTIVE</Text>
+        <Text style={styles.nodeSub}>SHA-256 IMMUTABLE LEDGER ACTIVE</Text>
+
+        <TouchableOpacity onPress={() => router.push('/(web)/terms')} style={styles.termsLinkWrap}>
+          <Text style={styles.sidebarTermsText}>TERMS & LEGAL GOVERNANCE →</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -85,16 +90,16 @@ export default function WebLayout() {
               style={styles.hamburgerBtn}
               accessibilityLabel="Open Navigation Menu"
             >
-              <Text style={styles.hamburgerIcon}>☰</Text>
+              <Text style={styles.hamburgerIcon}>MENU</Text>
             </TouchableOpacity>
           )}
           <View style={styles.sealBox}>
-            <Text style={styles.sealIcon}>⚖</Text>
+            <OfficialSeal size={28} />
           </View>
           <View>
             <Text style={styles.brandTitle}>PRAMAAN</Text>
             <Text style={styles.brandSubtitle}>
-              {isMobile ? 'EVIDENCE LEDGER' : 'NATIONAL EVIDENCE & CUSTODY LEDGER'}
+              {isMobile ? 'EVIDENCE LEDGER' : 'NATIONAL DIGITAL EVIDENCE & CHAIN-OF-CUSTODY LEDGER'}
             </Text>
           </View>
         </View>
@@ -102,7 +107,7 @@ export default function WebLayout() {
         {/* Desktop Role Preset Switcher in Header */}
         {!isMobile && (
           <View style={styles.roleSwitcherBar}>
-            <Text style={styles.switcherLabel}>SWITCH ACTIVE ROLE:</Text>
+            <Text style={styles.switcherLabel}>ACTIVE ROLE:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
               {DEMO_ACCOUNTS.map((acc) => {
                 const isCurrent = user?.role === acc.role;
@@ -125,21 +130,25 @@ export default function WebLayout() {
         {/* User Badge & Actions */}
         <View style={styles.userSection}>
           {!isMobile && (
-            <View style={styles.userInfo}>
+            <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.userInfo}>
               <Text style={styles.userName}>{user?.name || 'Officer'}</Text>
               <Text style={styles.userMeta}>
                 {user?.role.replace(/_/g, ' ')} • {user?.badgeNumber}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.profileBtn}>
+            <Text style={styles.profileBtnText}>PROFILE</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
-            <Text style={styles.fieldViewText}>📱 FIELD</Text>
+            <Text style={styles.fieldViewText}>MOBILE VIEW</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
             <Text style={styles.logoutText}>LOGOUT</Text>
           </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Mobile Sub-header: Role Switcher Bar */}
       {isMobile && (
@@ -408,9 +417,15 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
-  navIcon: {
-    fontSize: 14,
-    marginRight: 10,
+  navTag: {
+    fontFamily: typography.fontMono,
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginRight: 8,
+  },
+  navTagActive: {
+    color: colors.primary,
   },
   navLabel: {
     fontFamily: typography.fontSans,
@@ -422,6 +437,34 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: colors.primary,
   },
+  profileBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    backgroundColor: colors.surfaceMuted,
+  },
+  profileBtnText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  termsLinkWrap: {
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  sidebarTermsText: {
+    fontFamily: typography.fontSans,
+    fontSize: 8,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+
   sidebarFooter: {
     backgroundColor: colors.backgroundSubdued,
     borderWidth: 1,

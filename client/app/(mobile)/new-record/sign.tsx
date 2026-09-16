@@ -76,13 +76,13 @@ export default function MobileSignScreen() {
       {/* Mode Status Pill */}
       <View style={styles.modeBadge}>
         <Text style={styles.modeText}>
-          {isOffline ? '⚡ OFFLINE MODE: Record will be stored in local SQLite queue' : '● ONLINE MODE: Record will be anchored immediately in ledger'}
+          {isOffline ? '[OFFLINE] Record will be stored in local SQLite queue' : '[ONLINE] Record will be anchored immediately in ledger'}
         </Text>
       </View>
 
       {submissionSuccess && (
         <View style={styles.successBox}>
-          <Text style={styles.successText}>✓ {submissionSuccess}</Text>
+          <Text style={styles.successText}>[SUCCESS] {submissionSuccess}</Text>
         </View>
       )}
 
@@ -106,7 +106,7 @@ export default function MobileSignScreen() {
       <Panel title="INVESTIGATING / HELP DESK OFFICER DIGITAL ENDORSEMENT">
         <View style={styles.signaturePad}>
           <Text style={styles.sigPlaceholder}>
-            {hasSigned ? '✍ Rajesh Varma [CRYPTOGRAPHIC TOKEN ATTACHED]' : 'TAP TO SIGN'}
+            {hasSigned ? `[AUTHENTICATED] ${user?.name || 'OFFICER'} [TOKEN ATTACHED]` : 'TAP TO SIGN'}
           </Text>
           <View style={styles.sigSeal}>
             <Text style={styles.sigSealText}>OFFICIAL SEAL: {user?.badgeNumber}</Text>
@@ -126,8 +126,8 @@ export default function MobileSignScreen() {
           isSubmitting
             ? 'ENCRYPTING & PERSISTING...'
             : isOffline
-            ? '📥 SAVE TO LOCAL SQLITE QUEUE (OFFLINE) →'
-            : '⚡ SUBMIT & ANCHOR IN LEDGER (ONLINE) →'
+            ? 'SAVE TO LOCAL SQLITE QUEUE (OFFLINE) →'
+            : 'SUBMIT & ANCHOR IN LEDGER (ONLINE) →'
         }
         onPress={handleSubmit}
         loading={isSubmitting}

@@ -29,7 +29,7 @@ export default function MobileLayout() {
             style={[styles.offlineToggle, isOffline && styles.offlineToggleActive]}
           >
             <Text style={[styles.offlineToggleText, isOffline && styles.offlineToggleTextActive]}>
-              {isOffline ? '⚡ OFFLINE' : '● ONLINE'}
+              {isOffline ? 'OFFLINE' : 'ONLINE'}
             </Text>
           </TouchableOpacity>
 
@@ -38,12 +38,12 @@ export default function MobileLayout() {
             style={styles.queueBtn}
           >
             <Text style={styles.queueBtnText}>
-              📥 {queuedCount}
+              QUEUE: {queuedCount}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/(web)/dashboard')} style={styles.webBtn}>
-            <Text style={styles.webBtnText}>💻 WEB</Text>
+            <Text style={styles.webBtnText}>DESKTOP VIEW</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -67,26 +67,24 @@ export default function MobileLayout() {
           onPress={() => router.push('/(mobile)/home')}
           style={[styles.navItem, pathname === '/home' && styles.navItemActive]}
         >
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text style={styles.navLabel}>HOME</Text>
+          <Text style={styles.navLabel}>[HOME]</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push('/(mobile)/new-record/capture')}
           style={styles.captureFab}
         >
-          <Text style={styles.captureFabIcon}>📷</Text>
-          <Text style={styles.captureFabText}>CAPTURE</Text>
+          <Text style={styles.captureFabText}>+ CAPTURE EVIDENCE</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push('/(mobile)/sync')}
           style={[styles.navItem, pathname === '/sync' && styles.navItemActive]}
         >
-          <Text style={styles.navIcon}>🔄</Text>
-          <Text style={styles.navLabel}>SYNC QUEUE</Text>
+          <Text style={styles.navLabel}>[SYNC QUEUE]</Text>
         </TouchableOpacity>
       </View>
+
     </View>
   );
 }

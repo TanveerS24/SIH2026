@@ -38,7 +38,7 @@ export default function AnalyticsScreen() {
         </Text>
         <View style={styles.disclaimerBox}>
           <Text style={styles.disclaimerText}>
-            ⚠ {stats?.disclaimer || 'DEMONSTRATION DATA — NOT OFFICIAL NCRB STATISTICS'}
+            [STATUTORY NOTICE] {stats?.disclaimer || 'OFFICIAL SYSTEM TELEMETRY — LIVE CHAIN-OF-CUSTODY AUDIT'}
           </Text>
         </View>
       </View>
@@ -47,14 +47,14 @@ export default function AnalyticsScreen() {
       <View style={styles.metricsGrid}>
         <View style={styles.metricBox}>
           <Text style={styles.metricLabel}>TOTAL RECORDED CASES (NATIONAL)</Text>
-          <Text style={styles.metricVal}>{stats?.totalCases || 8582}</Text>
-          <Text style={styles.metricSub}>Aggregate synthetic dataset</Text>
+          <Text style={styles.metricVal}>{stats?.totalCases ?? 0}</Text>
+          <Text style={styles.metricSub}>Live digital cases in register</Text>
         </View>
 
         <View style={styles.metricBox}>
           <Text style={styles.metricLabel}>NATIONAL CHARGE SHEET RATE</Text>
           <Text style={[styles.metricVal, { color: colors.verified }]}>
-            {stats?.chargeSheetsFiledRate || 78.4}%
+            {stats?.chargeSheetsFiledRate ?? 0}%
           </Text>
           <Text style={styles.metricSub}>Statutory compliance benchmark</Text>
         </View>
@@ -62,15 +62,15 @@ export default function AnalyticsScreen() {
         <View style={styles.metricBox}>
           <Text style={styles.metricLabel}>AVERAGE DAYS TO CHARGE SHEET</Text>
           <Text style={[styles.metricVal, { color: colors.primary }]}>
-            {stats?.avgChargeSheetDays || 54} Days
+            {stats?.avgChargeSheetDays ?? 0} Days
           </Text>
-          <Text style={styles.metricSub}>Under 60-day statutory limit</Text>
+          <Text style={styles.metricSub}>Statutory turnaround timeline</Text>
         </View>
 
         <View style={styles.metricBox}>
           <Text style={styles.metricLabel}>BLOCKCHAIN LEDGER BLOCKS</Text>
           <Text style={[styles.metricVal, { color: colors.ledgerGold }]}>
-            {stats?.totalEvidenceAnchored || 14}
+            {stats?.totalEvidenceAnchored ?? 0}
           </Text>
           <Text style={styles.metricSub}>Immutable audit anchors</Text>
         </View>
@@ -81,47 +81,72 @@ export default function AnalyticsScreen() {
         title="STATE / UNION TERRITORY STATISTICAL BREAKDOWN"
         subtitle="De-identified case progression and forensic turnaround by state jurisdiction"
       >
-        <DataTable
-          columns={stateColumns}
-          data={stats?.states || []}
-          keyExtractor={(item) => item.stateCode}
-        />
+        {stats?.states && stats.states.length > 0 ? (
+          <DataTable
+            columns={stateColumns}
+            data={stats.states}
+            keyExtractor={(item) => item.stateCode}
+          />
+        ) : (
+          <View style={{ padding: 16, alignItems: 'center' }}>
+            <Text style={{ fontFamily: typography.fontSans, fontSize: 12, color: colors.textMuted }}>
+              [CLEAN STATE] No jurisdictional cases recorded yet. Real-time statistics will populate as cases are registered.
+            </Text>
+          </View>
+        )}
       </Panel>
 
       {/* Category Breakdown & Monthly Trends */}
       <View style={styles.twoColRow}>
         <View style={styles.halfCol}>
           <Panel title="CASES BY STATUTORY CATEGORY" subtitle="BNS & IT Act Section Distribution">
-            {stats?.categories?.map((cat: any, i: number) => (
-              <View key={i} style={styles.catRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.catName}>{cat.category}</Text>
-                  <Text style={styles.catSec}>{cat.bnsSection}</Text>
+            {stats?.categories && stats.categories.length > 0 ? (
+              stats.categories.map((cat: any, i: number) => (
+                <View key={i} style={styles.catRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.catName}>{cat.category}</Text>
+                    <Text style={styles.catSec}>{cat.bnsSection}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.catCount}>{cat.caseCount} cases</Text>
+                    <Text style={styles.catRate}>{cat.chargeSheetRate}% Filed</Text>
+                  </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.catCount}>{cat.caseCount} cases</Text>
-                  <Text style={styles.catRate}>{cat.chargeSheetRate}% Filed</Text>
-                </View>
+              ))
+            ) : (
+              <View style={{ padding: 14, alignItems: 'center' }}>
+                <Text style={{ fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted }}>
+                  No statutory category records registered.
+                </Text>
               </View>
-            ))}
+            )}
           </Panel>
         </View>
 
         <View style={styles.halfCol}>
-          <Panel title="MONTHLY DISPOSAL TRENDS (2026)" subtitle="Reported vs Charge-Sheeted vs Disposed">
-            {stats?.monthlyTrends?.map((m: any, i: number) => (
-              <View key={i} style={styles.trendRow}>
-                <Text style={styles.trendMonth}>{m.month}</Text>
-                <View style={styles.trendValues}>
-                  <Text style={styles.trendReported}>Reported: {m.reported}</Text>
-                  <Text style={styles.trendFiled}>Filed: {m.chargeSheeted}</Text>
-                  <Text style={styles.trendDisposed}>Disposed: {m.disposed}</Text>
+          <Panel title="MONTHLY DISPOSAL TRENDS" subtitle="Reported vs Charge-Sheeted vs Disposed">
+            {stats?.monthlyTrends && stats.monthlyTrends.length > 0 ? (
+              stats.monthlyTrends.map((m: any, i: number) => (
+                <View key={i} style={styles.trendRow}>
+                  <Text style={styles.trendMonth}>{m.month}</Text>
+                  <View style={styles.trendValues}>
+                    <Text style={styles.trendReported}>Reported: {m.reported}</Text>
+                    <Text style={styles.trendFiled}>Filed: {m.chargeSheeted}</Text>
+                    <Text style={styles.trendDisposed}>Disposed: {m.disposed}</Text>
+                  </View>
                 </View>
+              ))
+            ) : (
+              <View style={{ padding: 14, alignItems: 'center' }}>
+                <Text style={{ fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted }}>
+                  Monthly trend aggregations will accumulate on case filings.
+                </Text>
               </View>
-            ))}
+            )}
           </Panel>
         </View>
       </View>
+
     </ScrollView>
   );
 }

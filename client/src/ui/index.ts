@@ -12,3 +12,4 @@ export * from './components/CaseHeader';
 export * from './components/WorkflowChecklist';
 export * from './components/RedactedField';
 export * from './components/OfflineIndicator';
+export * from './components/OfficialSeal';

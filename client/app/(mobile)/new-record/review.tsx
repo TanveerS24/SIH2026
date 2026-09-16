@@ -39,7 +39,7 @@ export default function MobileReviewScreen() {
 
       {/* AI Extraction Banner */}
       <View style={styles.ocrBanner}>
-        <Text style={styles.ocrBannerTitle}>✓ AUTOMATED OCR & METADATA EXTRACTION COMPLETE</Text>
+        <Text style={styles.ocrBannerTitle}>[VERIFIED] AUTOMATED OCR & METADATA EXTRACTION COMPLETE</Text>
         <Text style={styles.ocrBannerSub}>
           Confirm or adjust extracted statutory metadata prior to digital officer signature.
         </Text>

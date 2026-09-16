@@ -103,7 +103,7 @@ export default function DocumentVerificationScreen() {
         {/* Verification Status Summary Callout */}
         <View style={[styles.summaryBox, isVerified ? styles.summaryBoxVerified : styles.summaryBoxMismatch]}>
           <Text style={[styles.summaryTitle, isVerified ? styles.summaryTitleVerified : styles.summaryTitleMismatch]}>
-            {isVerified ? '✓ CRYPTOGRAPHIC INTEGRITY AFFIRMED' : '⚠ CRITICAL INTEGRITY ALERT: MISMATCH DETECTED'}
+            {isVerified ? '[AUTHENTICATED] CRYPTOGRAPHIC INTEGRITY AFFIRMED' : '[TAMPER ALERT] CRITICAL INTEGRITY MISMATCH DETECTED'}
           </Text>
           <Text style={styles.summaryDesc}>
             {verifyResult?.verificationMessage}
@@ -116,28 +116,29 @@ export default function DocumentVerificationScreen() {
 
       {/* Live Demonstration: Tampering Simulator */}
       <Panel
-        title="TAMPER VERIFICATION DEMO CONTROLS"
-        subtitle="Demonstrate live detection of evidence alteration"
+        title="TAMPER VERIFICATION CONTROLS"
+        subtitle="Verification engine live detection of evidence alteration"
         variant="ledger"
       >
         <Text style={styles.demoExplanation}>
-          In this interactive demonstration, you can simulate an adversary or corrupted process altering the binary file in storage. The verification engine will immediately catch the altered SHA-256 hash and trigger an integrity breach alert.
+          This verification tool tests active detection when an exhibit is altered in binary storage. The verification engine checks the active SHA-256 digest against the ledger anchor and triggers an integrity mismatch alert upon discrepancy.
         </Text>
 
         <View style={styles.demoActionRow}>
           <Button
-            title={tamperMutation.isPending ? 'APPLYING CORRUPTION...' : '⚡ SIMULATE TAMPERED / MODIFIED DOCUMENT'}
+            title={tamperMutation.isPending ? 'APPLYING CORRUPTION...' : 'SIMULATE TAMPERED DOCUMENT TEST'}
             onPress={() => tamperMutation.mutate()}
             loading={tamperMutation.isPending}
             variant="danger"
           />
           <Button
-            title="🔄 RE-RUN LEDGER VERIFICATION"
+            title="RE-RUN LEDGER VERIFICATION"
             onPress={() => refetch()}
             variant="secondary"
           />
         </View>
       </Panel>
+
     </ScrollView>
   );
 }

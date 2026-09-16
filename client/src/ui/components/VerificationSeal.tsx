@@ -68,7 +68,7 @@ export const VerificationSeal: React.FC<VerificationSealProps> = ({
             },
           ]}
         >
-          {isVerified ? '✓ CRYPTOGRAPHICALLY VERIFIED' : isMismatch ? '✗ HASH MISMATCH DETECTED' : '◯ UNANCHORED'}
+          {isVerified ? '[AUTHENTICATED] SHA-256 LEDGER MATCH CONFIRMED' : isMismatch ? '[ALERT] CRYPTOGRAPHIC HASH MISMATCH DETECTED' : '[STATUS] UNANCHORED / PENDING CONFIRMATION'}
         </Text>
 
         <Text style={[styles.detailText, { color: textColor }]}>

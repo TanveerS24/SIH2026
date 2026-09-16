@@ -17,7 +17,7 @@ export default function MobileHomeScreen() {
       {/* Officer ID Header */}
       <View style={styles.officerCard}>
         <View style={styles.avatarBox}>
-          <Text style={styles.avatarText}>👮</Text>
+          <Text style={styles.avatarText}>ID</Text>
         </View>
         <View style={styles.officerDetails}>
           <Text style={styles.officerName}>{user?.name}</Text>
@@ -35,7 +35,7 @@ export default function MobileHomeScreen() {
         style={styles.primaryActionCard}
       >
         <View style={styles.primaryActionIconBox}>
-          <Text style={styles.primaryActionIcon}>📷</Text>
+          <Text style={styles.primaryActionIcon}>[REC]</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.primaryActionTitle}>CAMERA-FIRST EVIDENCE CAPTURE</Text>
@@ -128,7 +128,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarText: {
-    fontSize: 22,
+    fontFamily: typography.fontMono,
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary,
   },
   officerDetails: {
     flex: 1,
@@ -168,7 +171,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryActionIcon: {
-    fontSize: 22,
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textInverse,
   },
   primaryActionTitle: {
     fontFamily: typography.fontSans,
