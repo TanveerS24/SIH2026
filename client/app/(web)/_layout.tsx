@@ -18,6 +18,7 @@ export default function WebLayout() {
   const { user, logout, switchDemoRole } = useAuthStore();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const isCompact = width < 1120;
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const navItems = [
@@ -42,10 +43,24 @@ export default function WebLayout() {
           <Text style={styles.navSectionHeader}>REGISTRY NAVIGATION</Text>
           {isMobile && (
             <TouchableOpacity onPress={() => setIsDrawerOpen(false)} style={styles.closeDrawerBtn}>
-              <Text style={styles.closeDrawerText}>CLOSE</Text>
+              <Text style={styles.closeDrawerText}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
+
+        {isMobile && user && (
+          <View style={styles.drawerOfficerCard}>
+            <View style={styles.drawerOfficerAvatar}>
+              <OfficialSeal size={28} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.drawerOfficerName}>{user.name}</Text>
+              <Text style={styles.drawerOfficerMeta}>
+                {user.role.replace(/_/g, ' ')} • {user.badgeNumber}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.path.replace('/(web)', '')) || pathname === item.path;
@@ -64,17 +79,36 @@ export default function WebLayout() {
         })}
       </View>
 
-      <View style={styles.sidebarFooter}>
-        <Text style={styles.nodeStatusTitle}>LEDGER NODE STATUS</Text>
-        <View style={styles.nodeStatusRow}>
-          <View style={styles.nodeDot} />
-          <Text style={styles.nodeStatusText}>PRIMARY VALIDATOR: SYNCED</Text>
-        </View>
-        <Text style={styles.nodeSub}>SHA-256 IMMUTABLE LEDGER ACTIVE</Text>
+      <View>
+        {isMobile && (
+          <View style={styles.drawerQuickActions}>
+            <TouchableOpacity
+              onPress={() => handleNav('/(mobile)/home')}
+              style={styles.drawerFieldBtn}
+            >
+              <Text style={styles.drawerFieldText}>SWITCH TO MOBILE FIELD VIEW →</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={logout}
+              style={styles.drawerLogoutBtn}
+            >
+              <Text style={styles.drawerLogoutText}>LOGOUT FROM SESSION</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-        <TouchableOpacity onPress={() => router.push('/(web)/terms')} style={styles.termsLinkWrap}>
-          <Text style={styles.sidebarTermsText}>TERMS & LEGAL GOVERNANCE →</Text>
-        </TouchableOpacity>
+        <View style={styles.sidebarFooter}>
+          <Text style={styles.nodeStatusTitle}>LEDGER NODE STATUS</Text>
+          <View style={styles.nodeStatusRow}>
+            <View style={styles.nodeDot} />
+            <Text style={styles.nodeStatusText}>PRIMARY VALIDATOR: SYNCED</Text>
+          </View>
+          <Text style={styles.nodeSub}>SHA-256 IMMUTABLE LEDGER ACTIVE</Text>
+
+          <TouchableOpacity onPress={() => router.push('/(web)/terms')} style={styles.termsLinkWrap}>
+            <Text style={styles.sidebarTermsText}>TERMS & LEGAL GOVERNANCE →</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -90,24 +124,34 @@ export default function WebLayout() {
               style={styles.hamburgerBtn}
               accessibilityLabel="Open Navigation Menu"
             >
-              <Text style={styles.hamburgerIcon}>MENU</Text>
+              <View style={styles.hamburgerLines}>
+                <View style={styles.hamburgerLine} />
+                <View style={styles.hamburgerLine} />
+                <View style={styles.hamburgerLine} />
+              </View>
             </TouchableOpacity>
           )}
-          <View style={styles.sealBox}>
-            <OfficialSeal size={28} />
-          </View>
-          <View>
-            <Text style={styles.brandTitle}>PRAMAAN</Text>
-            <Text style={styles.brandSubtitle}>
-              {isMobile ? 'EVIDENCE LEDGER' : 'NATIONAL DIGITAL EVIDENCE & CHAIN-OF-CUSTODY LEDGER'}
-            </Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(web)/dashboard')}
+            style={styles.brandTouchable}
+            activeOpacity={0.8}
+          >
+            <View style={styles.sealBox}>
+              <OfficialSeal size={28} />
+            </View>
+            <View style={styles.brandTextCol}>
+              <Text style={styles.brandTitle}>PRAMAAN</Text>
+              <Text style={styles.brandSubtitle} numberOfLines={1}>
+                {isMobile ? 'EVIDENCE LEDGER' : 'NATIONAL DIGITAL EVIDENCE & CHAIN-OF-CUSTODY LEDGER'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        {/* Desktop Role Preset Switcher in Header */}
-        {!isMobile && (
+        {/* Desktop Role Preset Switcher in Header (Only when wide) */}
+        {!isCompact && (
           <View style={styles.roleSwitcherBar}>
-            <Text style={styles.switcherLabel}>ACTIVE ROLE:</Text>
+            <Text style={styles.switcherLabel}>ACTIVE CADRE:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
               {DEMO_ACCOUNTS.map((acc) => {
                 const isCurrent = user?.role === acc.role;
@@ -128,32 +172,46 @@ export default function WebLayout() {
         )}
 
         {/* User Badge & Actions */}
-        <View style={styles.userSection}>
-          {!isMobile && (
+        {isMobile ? (
+          <View style={styles.mobileActionsRow}>
+            <TouchableOpacity
+              onPress={() => router.push('/(web)/profile')}
+              style={styles.mobileCadrePill}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.mobileCadreText} numberOfLines={1}>
+                {user?.role ? user.role.replace(/_/g, ' ') : 'OFFICER'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={logout} style={styles.mobileLogoutBtn}>
+              <Text style={styles.mobileLogoutText}>LOGOUT</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.userSection}>
             <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.userInfo}>
               <Text style={styles.userName}>{user?.name || 'Officer'}</Text>
               <Text style={styles.userMeta}>
                 {user?.role.replace(/_/g, ' ')} • {user?.badgeNumber}
               </Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.profileBtn}>
-            <Text style={styles.profileBtnText}>PROFILE</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
-            <Text style={styles.fieldViewText}>MOBILE VIEW</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>LOGOUT</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.profileBtn}>
+              <Text style={styles.profileBtnText}>PROFILE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
+              <Text style={styles.fieldViewText}>MOBILE VIEW</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+              <Text style={styles.logoutText}>LOGOUT</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-
-      {/* Mobile Sub-header: Role Switcher Bar */}
-      {isMobile && (
+      {/* Sub-header: Role Switcher Bar for Mobile and Compact viewports */}
+      {isCompact && (
         <View style={styles.mobileRoleBar}>
-          <Text style={styles.mobileRoleLabel}>ROLE:</Text>
+          <Text style={styles.mobileRoleLabel}>CADRE:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
             {DEMO_ACCOUNTS.map((acc) => {
               const isCurrent = user?.role === acc.role;
@@ -225,30 +283,41 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
+  },
+  brandTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  brandTextCol: {
+    justifyContent: 'center',
   },
   hamburgerBtn: {
-    padding: 6,
-    marginRight: 6,
-  },
-  hamburgerIcon: {
-    fontSize: 20,
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  sealBox: {
-    width: 32,
-    height: 32,
-    backgroundColor: colors.primaryLight,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    width: 34,
+    height: 34,
     borderRadius: 2,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
-  sealIcon: {
-    fontSize: 16,
-    color: colors.primary,
+  hamburgerLines: {
+    width: 16,
+    height: 11,
+    justifyContent: 'space-between',
+  },
+  hamburgerLine: {
+    width: 16,
+    height: 1.5,
+    backgroundColor: colors.primary,
+    borderRadius: 1,
+  },
+  sealBox: {
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandTitle: {
     fontFamily: typography.fontSerif,
@@ -256,6 +325,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
     letterSpacing: 0.8,
+    lineHeight: 18,
   },
   brandSubtitle: {
     fontFamily: typography.fontSans,
@@ -263,6 +333,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.5,
+    marginTop: 1,
   },
   roleSwitcherBar: {
     flexDirection: 'row',
@@ -285,7 +356,8 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: colors.textMuted,
-    marginRight: 6,
+    marginRight: 8,
+    letterSpacing: 0.5,
   },
   switcherLabel: {
     fontFamily: typography.fontSans,
@@ -293,6 +365,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textMuted,
     marginRight: 8,
+    letterSpacing: 0.5,
   },
   rolePillsScroll: {
     flexDirection: 'row',
@@ -315,9 +388,46 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: colors.textSecondary,
+    letterSpacing: 0.3,
   },
   rolePillTextActive: {
     color: colors.textInverse,
+  },
+  mobileActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mobileCadrePill: {
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 2,
+    maxWidth: 140,
+  },
+  mobileCadreText: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.4,
+  },
+  mobileLogoutBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    backgroundColor: colors.backgroundSubdued,
+  },
+  mobileLogoutText: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.alertDark,
+    letterSpacing: 0.5,
   },
   userSection: {
     flexDirection: 'row',
@@ -326,6 +436,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     alignItems: 'flex-end',
+    marginRight: 4,
   },
   userName: {
     fontFamily: typography.fontSans,
@@ -337,6 +448,22 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontMono,
     fontSize: 9,
     color: colors.primary,
+    marginTop: 1,
+  },
+  profileBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    backgroundColor: colors.surfaceMuted,
+  },
+  profileBtnText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
   fieldViewBtn: {
     backgroundColor: colors.ledgerGoldLight,
@@ -351,6 +478,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: colors.ledgerGold,
+    letterSpacing: 0.5,
   },
   logoutBtn: {
     paddingHorizontal: 8,
@@ -364,7 +492,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontSans,
     fontSize: 10,
     fontWeight: '700',
-    color: colors.textSecondary,
+    color: colors.alertDark,
+    letterSpacing: 0.5,
   },
   body: {
     flex: 1,
@@ -378,7 +507,7 @@ const styles = StyleSheet.create({
   },
   sidebarInner: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 12,
     justifyContent: 'space-between',
   },
@@ -386,8 +515,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
-    paddingHorizontal: 8,
+    marginBottom: 10,
+    paddingHorizontal: 4,
   },
   navSectionHeader: {
     fontFamily: typography.fontSans,
@@ -400,17 +529,44 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   closeDrawerText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: colors.textMuted,
+  },
+  drawerOfficerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 8,
+    borderRadius: 2,
+    marginBottom: 12,
+    gap: 8,
+  },
+  drawerOfficerAvatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerOfficerName: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  drawerOfficerMeta: {
+    fontFamily: typography.fontMono,
+    fontSize: 8,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   navBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     borderRadius: 2,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   navBtnActive: {
     backgroundColor: colors.primaryLight,
@@ -437,41 +593,48 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: colors.primary,
   },
-  profileBtn: {
+  drawerQuickActions: {
+    gap: 6,
+    marginBottom: 10,
+  },
+  drawerFieldBtn: {
+    backgroundColor: colors.ledgerGoldLight,
+    borderWidth: 1,
+    borderColor: colors.ledgerGoldBorder,
+    paddingVertical: 7,
     paddingHorizontal: 8,
-    paddingVertical: 4,
     borderRadius: 2,
+    alignItems: 'center',
+  },
+  drawerFieldText: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.ledgerGold,
+    letterSpacing: 0.4,
+  },
+  drawerLogoutBtn: {
+    backgroundColor: colors.backgroundSubdued,
     borderWidth: 1,
     borderColor: colors.borderDark,
-    backgroundColor: colors.surfaceMuted,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 2,
+    alignItems: 'center',
   },
-  profileBtnText: {
+  drawerLogoutText: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  termsLinkWrap: {
-    marginTop: 8,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  sidebarTermsText: {
-    fontFamily: typography.fontSans,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: 0.5,
+    color: colors.alertDark,
+    letterSpacing: 0.4,
   },
-
   sidebarFooter: {
     backgroundColor: colors.backgroundSubdued,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 10,
     borderRadius: 2,
-    marginTop: 16,
   },
   nodeStatusTitle: {
     fontFamily: typography.fontSans,
@@ -504,6 +667,19 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: colors.textMuted,
   },
+  termsLinkWrap: {
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  sidebarTermsText: {
+    fontFamily: typography.fontSans,
+    fontSize: 8,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
   modalOverlay: {
     flex: 1,
     flexDirection: 'row',
@@ -517,7 +693,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   drawerSidebar: {
-    width: 260,
+    width: 270,
     height: '100%',
     backgroundColor: colors.surface,
     elevation: 8,

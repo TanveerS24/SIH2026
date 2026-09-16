@@ -15,6 +15,14 @@ export const OfficialSeal: React.FC<OfficialSealProps> = ({
 }) => {
   const outerSize = size;
   const innerSize = Math.round(size * 0.76);
+  const scale = size / 48;
+  const pedimentWidth = Math.max(10, Math.round(16 * scale));
+  const pedimentHeight = Math.max(2, Math.round(3 * scale));
+  const colHeight = Math.max(5, Math.round(8 * scale));
+  const colWidth = Math.max(1.5, Math.round(2 * scale));
+  const colGap = Math.max(1.5, Math.round(2.5 * scale));
+  const baseWidth = Math.max(12, Math.round(18 * scale));
+  const baseHeight = Math.max(1.5, Math.round(2 * scale));
 
   return (
     <View style={[styles.wrapper, style]}>
@@ -42,13 +50,23 @@ export const OfficialSeal: React.FC<OfficialSealProps> = ({
         >
           {/* Institutional geometric pillar / emblem */}
           <View style={styles.pillarEmblem}>
-            <View style={styles.pediment} />
-            <View style={styles.columnsRow}>
-              <View style={styles.column} />
-              <View style={styles.column} />
-              <View style={styles.column} />
+            <View
+              style={[
+                styles.pediment,
+                { width: pedimentWidth, height: pedimentHeight },
+              ]}
+            />
+            <View style={[styles.columnsRow, { height: colHeight, gap: colGap }]}>
+              <View style={[styles.column, { width: colWidth }]} />
+              <View style={[styles.column, { width: colWidth }]} />
+              <View style={[styles.column, { width: colWidth }]} />
             </View>
-            <View style={styles.baseLine} />
+            <View
+              style={[
+                styles.baseLine,
+                { width: baseWidth, height: baseHeight },
+              ]}
+            />
           </View>
         </View>
       </View>
@@ -65,12 +83,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outerCircle: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderStyle: 'solid',
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 2,
+    padding: 1,
   },
   innerCircle: {
     borderWidth: 1,
@@ -84,28 +102,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pediment: {
-    width: 14,
-    height: 3,
     backgroundColor: colors.primary,
     marginBottom: 1,
-    borderRadius: 1,
+    borderRadius: 0.5,
   },
   columnsRow: {
     flexDirection: 'row',
-    gap: 2,
-    height: 7,
     alignItems: 'center',
   },
   column: {
-    width: 2,
     height: '100%',
     backgroundColor: colors.primary,
   },
   baseLine: {
-    width: 16,
-    height: 2,
     backgroundColor: colors.primary,
     marginTop: 1,
+    borderRadius: 0.5,
   },
   sealLabel: {
     fontFamily: typography.fontSans,
