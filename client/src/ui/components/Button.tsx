@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, View, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { colors, typography } from '../tokens';
 
 export interface ButtonProps {
@@ -130,7 +130,7 @@ export const Button: React.FC<ButtonProps> = ({
         />
       ) : (
         <>
-          {icon && <span style={{ marginRight: 6, display: 'inline-flex' }}>{icon}</span>}
+          {icon && <View style={{ marginRight: 6 }}>{icon}</View>}
           <Text style={[getTextStyle(), textStyle]}>{title}</Text>
         </>
       )}

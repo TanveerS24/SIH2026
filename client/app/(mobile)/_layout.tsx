@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
     color: colors.textSecondary,
     marginTop: 2,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   captureFabText: {
     fontFamily: typography.fontSans,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     color: colors.textInverse,
     letterSpacing: 0.5,

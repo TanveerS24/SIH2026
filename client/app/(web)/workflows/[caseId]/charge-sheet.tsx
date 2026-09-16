@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 2,
     gap: 12,
+    flexWrap: 'wrap',
   },
   satisfyItemTitle: {
     fontFamily: typography.fontSans,

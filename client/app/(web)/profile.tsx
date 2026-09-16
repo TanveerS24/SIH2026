@@ -317,8 +317,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   idField: {
-    width: '48%',
-    minWidth: 240,
+    flexBasis: '48%',
+    flexGrow: 1,
+    minWidth: 220,
     marginBottom: 8,
   },
   idLabel: {

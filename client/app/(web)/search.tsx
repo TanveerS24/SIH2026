@@ -30,9 +30,9 @@ export default function SearchScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>INTELLIGENCE SEARCH & OCR DISCOVERY</Text>
+        <Text style={styles.title}>INTELLIGENCE SEARCH & DISCOVERY</Text>
         <Text style={styles.subtitle}>
-          Full-text OCR indexing, statutory section matching, and cross-case pattern synthesis
+          Full-text indexing, statutory section matching, and cross-case pattern synthesis
         </Text>
       </View>
 
@@ -41,7 +41,7 @@ export default function SearchScreen() {
         <Input
           value={searchTerm}
           onChangeText={setSearchTerm}
-          placeholder="Search metadata, extracted OCR text, suspects, locations, statutory sections..."
+          placeholder="Search metadata, extracted text, suspects, locations, statutory sections..."
           style={styles.searchInput}
         />
         <Button
@@ -112,8 +112,8 @@ export default function SearchScreen() {
 
       {/* Matching Evidence Documents */}
       <Panel
-        title={`MATCHING OCR EVIDENCE EXHIBITS (${searchResults?.matchingDocuments?.length || 0})`}
-        subtitle="Documents containing matching keywords within extracted OCR full text"
+        title={`MATCHING EVIDENCE EXHIBITS (${searchResults?.matchingDocuments?.length || 0})`}
+        subtitle="Documents containing matching keywords within extracted full text"
       >
         {searchResults?.matchingDocuments?.map((doc: any) => (
           <View key={doc.id} style={styles.docResultCard}>
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.fontSerif,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.primary,
   },
@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 10,
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
   },
   searchInput: {
     flex: 1,

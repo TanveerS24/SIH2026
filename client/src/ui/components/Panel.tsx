@@ -63,7 +63,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 2,
     marginBottom: 16,
-    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -74,6 +73,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.surfaceMuted,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   titleContainer: {
     flex: 1,

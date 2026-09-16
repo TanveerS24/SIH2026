@@ -40,7 +40,7 @@ export default function MobileHomeScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.primaryActionTitle}>CAMERA-FIRST EVIDENCE CAPTURE</Text>
           <Text style={styles.primaryActionSub}>
-            Capture photo exhibit, run live OCR classification, record digital witness statement
+            Capture photo exhibit, classify evidence, record digital witness statement
           </Text>
         </View>
         <Text style={styles.primaryActionArrow}>→</Text>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     color: colors.textMuted,
     marginBottom: 4,

@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: 0.5,
     flex: 1,
+    flexShrink: 1,
   },
   verifiedText: {
     color: colors.verifiedDark,

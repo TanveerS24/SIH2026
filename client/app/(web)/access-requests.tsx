@@ -290,6 +290,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
+    paddingBottom: 30,
   },
   fieldLabel: {
     fontFamily: typography.fontSans,

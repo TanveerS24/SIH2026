@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ViewStyle } from 'react-native';
 import { colors, typography } from '../tokens';
 
 export interface Column<T> {
@@ -26,6 +26,7 @@ export function DataTable<T>({
   style,
 }: DataTableProps<T>) {
   return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={true}>
     <View style={[styles.container, style]}>
       {/* Table Header */}
       <View style={styles.headerRow}>
@@ -81,6 +82,7 @@ export function DataTable<T>({
         ))
       )}
     </View>
+    </ScrollView>
   );
 }
 

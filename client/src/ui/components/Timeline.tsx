@@ -147,6 +147,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   actionBadge: {
     backgroundColor: colors.surface,

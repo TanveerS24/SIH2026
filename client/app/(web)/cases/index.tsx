@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.fontSerif,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.primary,
   },
@@ -246,6 +246,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
+    paddingBottom: 30,
   },
   modalActions: {
     flexDirection: 'row',

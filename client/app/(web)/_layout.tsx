@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topbar: {
-    height: 56,
+    minHeight: 56,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDark,
@@ -278,6 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
+    paddingVertical: 6,
     zIndex: 10,
   },
   brandRow: {
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   },
   brandSubtitle: {
     fontFamily: typography.fontSans,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.5,
@@ -405,7 +406,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 2,
-    maxWidth: 140,
+    maxWidth: 180,
   },
   mobileCadreText: {
     fontFamily: typography.fontSans,
@@ -705,6 +706,5 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    overflow: 'hidden',
   },
 });

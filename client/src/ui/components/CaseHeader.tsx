@@ -90,6 +90,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   caseBadge: {
     flexDirection: 'row',
@@ -116,6 +118,8 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   title: {
     fontFamily: typography.fontSerif,

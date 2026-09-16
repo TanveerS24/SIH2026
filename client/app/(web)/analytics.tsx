@@ -278,6 +278,7 @@ const styles = StyleSheet.create({
   trendValues: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   trendReported: {
     fontFamily: typography.fontSans,

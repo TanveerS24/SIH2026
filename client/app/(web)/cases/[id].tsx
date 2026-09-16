@@ -210,7 +210,7 @@ export default function CaseFileDetailScreen() {
               {/* Extracted OCR Sections */}
               {doc.detectedBnsSections && doc.detectedBnsSections.length > 0 && (
                 <View style={styles.ocrTagRow}>
-                  <Text style={styles.ocrLabel}>OCR DETECTED SECTIONS:</Text>
+                  <Text style={styles.ocrLabel}>DETECTED SECTIONS:</Text>
                   {doc.detectedBnsSections.map((sec: string, i: number) => (
                     <View key={i} style={styles.ocrTag}>
                       <Text style={styles.ocrText}>{sec}</Text>
@@ -306,7 +306,7 @@ export default function CaseFileDetailScreen() {
               <Input label="EXHIBIT / DOCUMENT TITLE" value={docTitle} onChangeText={setDocTitle} placeholder="e.g. State FSL Cyber Examination Report" />
               <Input label="DOCUMENT TYPE (FIR, WITNESS_STATEMENT, FORENSIC_REPORT, SEIZURE_MEMO)" value={docType} onChangeText={setDocType} />
               <Input label="ORIGINAL FILE NAME" value={docFileName} onChangeText={setDocFileName} monospace />
-              <Input label="DOCUMENT TEXT CONTENT (SIMULATED PAYLOAD FOR OCR & HASHING)" value={docContentText} onChangeText={setDocContentText} multiline numberOfLines={4} />
+              <Input label="DOCUMENT TEXT CONTENT" value={docContentText} onChangeText={setDocContentText} multiline numberOfLines={4} />
 
               <View style={styles.modalActions}>
                 <Button title="CANCEL" onPress={() => setShowUploadModal(false)} variant="secondary" />
@@ -356,6 +356,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginBottom: 16,
     gap: 12,
+    flexWrap: 'wrap',
   },
   leadIcon: {
     fontSize: 20,
@@ -383,10 +384,10 @@ const styles = StyleSheet.create({
   },
   tabBtn: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
-    marginRight: 8,
+    marginRight: 4,
   },
   tabBtnActive: {
     borderBottomColor: colors.primary,
@@ -416,6 +417,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   docTypeBadge: {
     backgroundColor: colors.surface,
@@ -586,6 +589,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
+    paddingBottom: 30,
   },
   modalActions: {
     flexDirection: 'row',

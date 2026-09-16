@@ -34,12 +34,12 @@ export default function MobileReviewScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <Button title="← Retake" onPress={() => router.back()} variant="secondary" size="sm" />
-        <Text style={styles.stepTitle}>STEP 2: OCR & METADATA REVIEW</Text>
+        <Text style={styles.stepTitle}>STEP 2: METADATA REVIEW</Text>
       </View>
 
       {/* AI Extraction Banner */}
       <View style={styles.ocrBanner}>
-        <Text style={styles.ocrBannerTitle}>[VERIFIED] AUTOMATED OCR & METADATA EXTRACTION COMPLETE</Text>
+        <Text style={styles.ocrBannerTitle}>[VERIFIED] AUTOMATED METADATA EXTRACTION COMPLETE</Text>
         <Text style={styles.ocrBannerSub}>
           Confirm or adjust extracted statutory metadata prior to digital officer signature.
         </Text>
@@ -62,7 +62,7 @@ export default function MobileReviewScreen() {
           label="STATUTORY BNS CLASSIFICATION SECTIONS"
           value={bnsSections}
           onChangeText={setBnsSections}
-          hint="Extracted by Pramaan OCR classifier."
+          hint="Extracted by Pramaan classifier."
         />
         <Input
           label="WITNESS / COMPLAINANT IDENTIFIER"

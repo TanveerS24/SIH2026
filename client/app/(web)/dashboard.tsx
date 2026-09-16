@@ -95,7 +95,7 @@ export default function DashboardScreen() {
                 size="sm"
               />
               <Button
-                title="RUN OCR & INTELLIGENCE SEARCH"
+                title="SEARCH EVIDENCE REPOSITORY"
                 onPress={() => router.push('/(web)/search')}
                 variant="secondary"
                 size="sm"
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     color: colors.textMuted,
     letterSpacing: 0.5,

@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontFamily: typography.fontSans,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -148,13 +148,13 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   checkCol: {
-    width: 24,
+    width: 56,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
   checkIcon: {
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: '900',
   },
   checkIconGreen: {
