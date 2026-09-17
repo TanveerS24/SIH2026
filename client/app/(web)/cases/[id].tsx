@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -13,7 +13,6 @@ import {
   HashDisplay,
   StatusTag,
   DataTable,
-  RedactedField,
 } from '@pramaan/ui';
 import { api } from '../../../services/api';
 import { useAuthStore } from '../../../stores/authStore';
@@ -23,14 +22,24 @@ export default function CaseFileDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'documents' | 'custody' | 'workflow' | 'audit' | 'relationships'>('documents');
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const fileInputRef = useRef<any>(null);
 
-  // Upload modal state
+  const [activeTab, setActiveTab] = useState<'documents' | 'custody' | 'workflow' | 'relationships'>('documents');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'file' | 'manual'>('file');
+
+  // File upload mode
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; base64: string; type: string } | null>(null);
+
+  // Shared / manual mode fields
   const [docTitle, setDocTitle] = useState('');
   const [docType, setDocType] = useState('FORENSIC_REPORT');
-  const [docFileName, setDocFileName] = useState('');
   const [docContentText, setDocContentText] = useState('');
+
+  // Expanded hashes
+  const [expandedHashes, setExpandedHashes] = useState<Set<string>>(new Set());
+  // Expanded justifications (access requests)
+  const [expandedRels, setExpandedRels] = useState<Set<number>>(new Set());
 
   const { data: caseRecord, isLoading, error } = useQuery({
     queryKey: ['case', id],
@@ -56,27 +65,74 @@ export default function CaseFileDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['case', id] });
       queryClient.invalidateQueries({ queryKey: ['custody', id] });
       setShowUploadModal(false);
-      setDocTitle('');
+      resetUpload();
     },
   });
 
+  const resetUpload = () => {
+    setUploadedFile(null);
+    setDocTitle('');
+    setDocContentText('');
+  };
+
+  const handleFileSelect = (e: any) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      const base64 = result.split(',')[1] || result;
+      setUploadedFile({ name: file.name, size: file.size, base64, type: file.type });
+      if (!docTitle) setDocTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleUpload = () => {
     if (!docTitle) return;
-    const base64Content = btoa(docContentText);
-    uploadMutation.mutate({
-      caseId: id,
-      title: docTitle,
-      fileName: docFileName,
-      documentType: docType,
-      mimeType: 'application/pdf',
-      fileBase64: base64Content,
+    if (uploadMode === 'file' && !uploadedFile) return;
+
+    const payload = uploadMode === 'file'
+      ? {
+          caseId: id,
+          title: docTitle,
+          fileName: uploadedFile!.name,
+          documentType: docType,
+          mimeType: uploadedFile!.type || 'application/octet-stream',
+          fileBase64: uploadedFile!.base64,
+        }
+      : {
+          caseId: id,
+          title: docTitle,
+          fileName: `${docTitle.replace(/\s+/g, '_')}.txt`,
+          documentType: docType,
+          mimeType: 'text/plain',
+          fileBase64: btoa(docContentText),
+        };
+
+    uploadMutation.mutate(payload);
+  };
+
+  const toggleHash = (docId: string) => {
+    setExpandedHashes((prev) => {
+      const next = new Set(prev);
+      next.has(docId) ? next.delete(docId) : next.add(docId);
+      return next;
+    });
+  };
+
+  const toggleRel = (idx: number) => {
+    setExpandedRels((prev) => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
     });
   };
 
   if (isLoading) {
     return (
       <View style={styles.centerWrap}>
-        <Text style={styles.loadingText}>Retrieving Cryptographically Anchored Case File...</Text>
+        <Text style={styles.loadingText}>Loading case file...</Text>
       </View>
     );
   }
@@ -85,9 +141,9 @@ export default function CaseFileDetailScreen() {
     return (
       <View style={styles.centerWrap}>
         <Text style={styles.errorText}>
-          {error ? (error as any).message : 'Access Restricted: You do not possess clearance for this case record.'}
+          {error ? (error as any).message : 'Access restricted or case not found.'}
         </Text>
-        <Button title="← Return to Register" onPress={() => router.push('/(web)/cases')} variant="secondary" style={{ marginTop: 12 }} />
+        <Button title="← Back to Register" onPress={() => router.push('/(web)/cases')} variant="secondary" style={{ marginTop: 12 }} />
       </View>
     );
   }
@@ -109,209 +165,276 @@ export default function CaseFileDetailScreen() {
         createdAt={caseRecord.createdAt}
       />
 
-      {/* Cross-Case Intelligence Lead Notice (if relationships exist) */}
+      {/* Cross-Case Alert (compact) */}
       {relationships && relationships.relationshipsCount > 0 && (
-        <View style={styles.leadAlertBox}>
-          <Text style={styles.leadIcon}>[CORRELATION]</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.leadTitle}>
-              CROSS-CASE INTELLIGENCE CORRELATION DETECTED ({relationships.relationshipsCount} LINK)
-            </Text>
-            <Text style={styles.leadDesc}>
-              Automated pattern matching detected shared suspects/locations with Case {relationships.relationships[0]?.targetCaseNumber}.
-            </Text>
-          </View>
-          <Button
-            title="VIEW INTELLIGENCE LEADS"
-            onPress={() => setActiveTab('relationships')}
-            variant="outline"
-            size="sm"
-          />
-        </View>
+        <TouchableOpacity style={styles.leadAlertBox} onPress={() => setActiveTab('relationships')} activeOpacity={0.8}>
+          <Text style={styles.leadIcon}>⚡</Text>
+          <Text style={styles.leadTitle}>
+            {relationships.relationshipsCount} cross-case intelligence link{relationships.relationshipsCount > 1 ? 's' : ''} detected
+          </Text>
+          <Text style={styles.leadArrow}>›</Text>
+        </TouchableOpacity>
       )}
 
-      {/* Tabs Bar */}
+      {/* Tabs */}
       <View style={styles.tabsRow}>
-        <TouchableOpacity
-          onPress={() => setActiveTab('documents')}
-          style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'documents' && styles.tabTextActive]}>
-            EVIDENCE EXHIBITS ({caseRecord.documents?.length || 0})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab('custody')}
-          style={[styles.tabBtn, activeTab === 'custody' && styles.tabBtnActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'custody' && styles.tabTextActive]}>
-            CHAIN OF CUSTODY ({custodyEvents.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab('workflow')}
-          style={[styles.tabBtn, activeTab === 'workflow' && styles.tabBtnActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'workflow' && styles.tabTextActive]}>
-            CHARGE SHEET WORKFLOW
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab('relationships')}
-          style={[styles.tabBtn, activeTab === 'relationships' && styles.tabBtnActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'relationships' && styles.tabTextActive]}>
-            CROSS-CASE LEADS ({relationships?.relationshipsCount || 0})
-          </Text>
-        </TouchableOpacity>
+        {([
+          { key: 'documents', label: 'EXHIBITS', count: caseRecord.documents?.length || 0 },
+          { key: 'custody', label: 'CUSTODY', count: custodyEvents.length },
+          { key: 'workflow', label: 'WORKFLOW', count: null },
+          { key: 'relationships', label: 'LINKS', count: relationships?.relationshipsCount || 0 },
+        ] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            onPress={() => setActiveTab(tab.key)}
+            style={[styles.tabBtn, activeTab === tab.key && styles.tabBtnActive]}
+          >
+            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              {tab.label}
+              {tab.count !== null && <Text style={styles.tabCount}> {tab.count}</Text>}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Tab 1: Documents & Evidence */}
+      {/* Tab: Documents */}
       {activeTab === 'documents' && (
         <Panel
-          title="EVIDENTIARY EXHIBITS & DOCUMENT REPOSITORY"
-          subtitle="All files are cryptographically hashed (SHA-256) and anchored in the permissioned ledger"
+          title={`EXHIBITS (${caseRecord.documents?.length || 0})`}
           action={
             !isJudicial ? (
-              <Button
-                title="+ INGEST / UPLOAD NEW EVIDENCE"
-                onPress={() => setShowUploadModal(true)}
-                variant="primary"
-                size="sm"
-              />
+              <Button title="+ INGEST" onPress={() => setShowUploadModal(true)} variant="primary" size="sm" />
             ) : undefined
           }
         >
-          {caseRecord.documents?.map((doc: any) => (
-            <View key={doc.id} style={styles.docItemCard}>
-              <View style={styles.docTopLine}>
-                <View style={styles.docTypeBadge}>
-                  <Text style={styles.docTypeText}>{doc.documentType.replace(/_/g, ' ')}</Text>
-                </View>
-                <View style={styles.docActions}>
-                  <Button
-                    title="VERIFY INTEGRITY (LEDGER)"
-                    onPress={() => router.push(`/(web)/documents/${doc.id}/verify` as any)}
-                    variant="verified"
-                    size="sm"
-                  />
-                </View>
-              </View>
-
-
-              <Text style={styles.docTitle}>{doc.title}</Text>
-              <Text style={styles.docMeta}>
-                FILE: {doc.originalFileName} • UPLOADED BY: {doc.uploadedByName || 'Officer'} ({doc.uploadedByRole}) • DATE: {new Date(doc.createdAt).toLocaleString()}
-              </Text>
-
-              {/* Extracted OCR Sections */}
-              {doc.detectedBnsSections && doc.detectedBnsSections.length > 0 && (
-                <View style={styles.ocrTagRow}>
-                  <Text style={styles.ocrLabel}>DETECTED SECTIONS:</Text>
-                  {doc.detectedBnsSections.map((sec: string, i: number) => (
-                    <View key={i} style={styles.ocrTag}>
-                      <Text style={styles.ocrText}>{sec}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Authoritative Hash & Ledger Tx */}
-              <HashDisplay hash={doc.sha256Hash} label="AUTHORITATIVE SHA-256 EVIDENCE HASH" verified />
-              {doc.ledgerTxId && (
-                <Text style={styles.ledgerTxText}>LEDGER ANCHOR TX: {doc.ledgerTxId}</Text>
-              )}
+          {(!caseRecord.documents || caseRecord.documents.length === 0) ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyIcon}>📁</Text>
+              <Text style={styles.emptyText}>No exhibits ingested yet.</Text>
             </View>
-          ))}
+          ) : caseRecord.documents.map((doc: any) => {
+            const hashExpanded = expandedHashes.has(doc.id);
+            return (
+              <View key={doc.id} style={styles.docCard}>
+                <View style={styles.docTopRow}>
+                  <View style={styles.docTypePill}>
+                    <Text style={styles.docTypeText}>{doc.documentType.replace(/_/g, ' ')}</Text>
+                  </View>
+                  <View style={styles.docActions}>
+                    <TouchableOpacity onPress={() => toggleHash(doc.id)} style={styles.hashToggleBtn}>
+                      <Text style={styles.hashToggleText}>{hashExpanded ? 'HIDE HASH' : 'SHOW HASH'}</Text>
+                    </TouchableOpacity>
+                    <Button
+                      title="VERIFY"
+                      onPress={() => router.push(`/(web)/documents/${doc.id}/verify` as any)}
+                      variant="verified"
+                      size="sm"
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.docTitle}>{doc.title}</Text>
+                <Text style={styles.docMeta} numberOfLines={1}>
+                  {doc.originalFileName} • {doc.uploadedByName || 'Officer'} • {new Date(doc.createdAt).toLocaleDateString('en-IN')}
+                </Text>
+
+                {/* BNS tags */}
+                {doc.detectedBnsSections && doc.detectedBnsSections.length > 0 && (
+                  <View style={styles.ocrTagRow}>
+                    {doc.detectedBnsSections.slice(0, 3).map((sec: string, i: number) => (
+                      <View key={i} style={styles.ocrTag}>
+                        <Text style={styles.ocrText}>{sec}</Text>
+                      </View>
+                    ))}
+                    {doc.detectedBnsSections.length > 3 && (
+                      <Text style={styles.ocrMore}>+{doc.detectedBnsSections.length - 3} more</Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Expandable Hash */}
+                {hashExpanded && (
+                  <View style={styles.hashExpanded}>
+                    <HashDisplay hash={doc.sha256Hash} label="SHA-256" verified />
+                    {doc.ledgerTxId && (
+                      <Text style={styles.ledgerTxText} numberOfLines={1}>TX: {doc.ledgerTxId}</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </Panel>
       )}
 
-      {/* Tab 2: Chain of Custody */}
+      {/* Tab: Chain of Custody */}
       {activeTab === 'custody' && (
-        <Panel
-          title="IMMUTABLE CHAIN OF CUSTODY TIMELINE"
-          subtitle="Chronological transaction log tracking every upload, OCR processing, officer signature, and judicial verification"
-        >
-          <Timeline events={custodyEvents} />
+        <Panel title={`CHAIN OF CUSTODY (${custodyEvents.length})`}>
+          {custodyEvents.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyIcon}>🔗</Text>
+              <Text style={styles.emptyText}>No custody transactions recorded.</Text>
+            </View>
+          ) : (
+            <Timeline events={custodyEvents} />
+          )}
         </Panel>
       )}
 
-      {/* Tab 3: Charge-Sheet Workflow */}
+      {/* Tab: Workflow */}
       {activeTab === 'workflow' && (
-        <Panel
-          title="CHARGE-SHEET FILING GATEWAY"
-          subtitle="Statutory validation engine enforcing prerequisite completeness before judicial submission"
-        >
-          <View style={styles.workflowGatewayBox}>
-            <Text style={styles.workflowGateTitle}>
-              Status: {caseRecord.isFiled ? 'FILED IN COMPETENT COURT' : 'PRE-FILING SCRUTINY IN PROGRESS'}
-            </Text>
-            <Text style={styles.workflowGateDesc}>
-              {caseRecord.isFiled
-                ? `Charge sheet formally lodged with court on ${new Date(caseRecord.filedAt).toLocaleString()}. Ledger Tx: ${caseRecord.filingLedgerTxId}`
-                : 'Charge sheet requires mandatory forensic laboratory reports, BNSS Section 180 witness depositions, and officer digital endorsement before filing is unlocked.'}
-            </Text>
+        <Panel title="CHARGE-SHEET WORKFLOW">
+          <View style={styles.workflowBox}>
+            <View style={styles.workflowStatusRow}>
+              <View style={[styles.workflowDot, caseRecord.isFiled && styles.workflowDotFiled]} />
+              <Text style={styles.workflowStatus}>
+                {caseRecord.isFiled ? 'FILED IN COURT' : 'PRE-FILING — IN PROGRESS'}
+              </Text>
+            </View>
+            {caseRecord.isFiled ? (
+              <Text style={styles.workflowMeta}>
+                Filed: {new Date(caseRecord.filedAt).toLocaleString('en-IN')}
+              </Text>
+            ) : (
+              <Text style={styles.workflowDesc}>
+                Requires forensic reports, witness depositions & officer endorsement.
+              </Text>
+            )}
             <Button
-              title="OPEN INTERACTIVE WORKFLOW SCRUTINY PANEL →"
+              title="OPEN WORKFLOW PANEL →"
               onPress={() => router.push(`/(web)/workflows/${caseRecord.id}/charge-sheet` as any)}
               variant="primary"
+              size="sm"
               style={{ marginTop: 12 }}
             />
           </View>
         </Panel>
       )}
 
-      {/* Tab 4: Cross-Case Leads */}
+      {/* Tab: Cross-Case */}
       {activeTab === 'relationships' && (
-        <Panel
-          title="CROSS-CASE INTELLIGENCE & PATTERN MATCHES"
-          subtitle="Correlations across suspect identities, geographical locations, and modus-operandi signatures"
-        >
-          {relationships?.relationships?.map((rel: any, idx: number) => (
-            <View key={idx} style={styles.leadCard}>
-              <View style={styles.leadHeader}>
-                <Text style={styles.leadTargetCase}>{rel.targetCaseNumber}</Text>
-                <StatusTag label={rel.correlationType.replace(/_/g, ' ')} variant="gold" size="sm" />
-              </View>
-              <Text style={styles.leadTargetTitle}>{rel.targetTitle}</Text>
-              <Text style={styles.leadDetail}>
-                {rel.correlationType === 'SUSPECT_MATCH'
-                  ? `Identified shared suspect: ${rel.sharedAttributes.suspects.join(', ')}`
-                  : 'Shared geographical radius in T. Nagar zone'}
-              </Text>
-              <Text style={styles.leadDisclaimer}>{rel.investigativeNotice}</Text>
+        <Panel title={`INTELLIGENCE LINKS (${relationships?.relationshipsCount || 0})`}>
+          {(!relationships?.relationships || relationships.relationships.length === 0) ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyText}>No cross-case links detected.</Text>
             </View>
-          ))}
-          {(!relationships?.relationships || relationships.relationships.length === 0) && (
-            <Text style={styles.emptyText}>No cross-case linkages detected for this record.</Text>
-          )}
+          ) : relationships.relationships.map((rel: any, idx: number) => {
+            const isExpanded = expandedRels.has(idx);
+            return (
+              <TouchableOpacity key={idx} style={styles.leadCard} onPress={() => toggleRel(idx)} activeOpacity={0.8}>
+                <View style={styles.leadHeader}>
+                  <Text style={styles.leadTargetCase}>{rel.targetCaseNumber}</Text>
+                  <StatusTag label={rel.correlationType.replace(/_/g, ' ')} variant="gold" size="sm" />
+                  <Text style={styles.expandChevron}>{isExpanded ? '∧' : '∨'}</Text>
+                </View>
+                <Text style={styles.leadTargetTitle} numberOfLines={isExpanded ? undefined : 1}>{rel.targetTitle}</Text>
+                {isExpanded && (
+                  <View style={styles.leadExpandedBody}>
+                    <Text style={styles.leadDetail}>
+                      {rel.correlationType === 'SUSPECT_MATCH'
+                        ? `Shared suspect: ${rel.sharedAttributes?.suspects?.join(', ')}`
+                        : 'Shared geographical radius'}
+                    </Text>
+                    {rel.investigativeNotice && (
+                      <Text style={styles.leadDisclaimer}>{rel.investigativeNotice}</Text>
+                    )}
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </Panel>
       )}
 
-      {/* Ingest Document Modal */}
+      {/* Evidence Ingest Modal */}
       <Modal visible={showUploadModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>INGEST & ANCHOR NEW EVIDENCE DOCUMENT</Text>
-              <TouchableOpacity onPress={() => setShowUploadModal(false)}>
-                <Text style={styles.closeBtn}>CLOSE</Text>
+              <Text style={styles.modalTitle}>INGEST EVIDENCE</Text>
+              <TouchableOpacity onPress={() => { setShowUploadModal(false); resetUpload(); }}>
+                <Text style={styles.closeBtn}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Tabs */}
+            <View style={styles.modeTabs}>
+              <TouchableOpacity
+                style={[styles.modeTab, uploadMode === 'file' && styles.modeTabActive]}
+                onPress={() => setUploadMode('file')}
+              >
+                <Text style={[styles.modeTabText, uploadMode === 'file' && styles.modeTabTextActive]}>
+                  📎 UPLOAD FILE
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modeTab, uploadMode === 'manual' && styles.modeTabActive]}
+                onPress={() => setUploadMode('manual')}
+              >
+                <Text style={[styles.modeTabText, uploadMode === 'manual' && styles.modeTabTextActive]}>
+                  ✏️ MANUAL ENTRY
+                </Text>
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody}>
-              <Input label="EXHIBIT / DOCUMENT TITLE" value={docTitle} onChangeText={setDocTitle} placeholder="e.g. State FSL Cyber Examination Report" />
-              <Input label="DOCUMENT TYPE (FIR, WITNESS_STATEMENT, FORENSIC_REPORT, SEIZURE_MEMO)" value={docType} onChangeText={setDocType} />
-              <Input label="ORIGINAL FILE NAME" value={docFileName} onChangeText={setDocFileName} monospace />
-              <Input label="DOCUMENT TEXT CONTENT" value={docContentText} onChangeText={setDocContentText} multiline numberOfLines={4} />
+              {uploadMode === 'file' ? (
+                <View>
+                  <TouchableOpacity
+                    style={[styles.dropZone, uploadedFile && styles.dropZoneUploaded]}
+                    onPress={() => Platform.OS === 'web' && (fileInputRef.current as HTMLInputElement)?.click()}
+                    activeOpacity={0.8}
+                  >
+                    {uploadedFile ? (
+                      <View style={styles.filePreview}>
+                        <Text style={styles.fileIcon}>
+                          {uploadedFile.type.includes('image') ? '🖼️' : '📄'}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.fileName} numberOfLines={1}>{uploadedFile.name}</Text>
+                          <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => setUploadedFile(null)} style={styles.removeFileBtn}>
+                          <Text style={styles.removeFileText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.dropZoneInner}>
+                        <Text style={styles.dropZoneIcon}>📂</Text>
+                        <Text style={styles.dropZoneTitle}>Select file to ingest</Text>
+                        <Text style={styles.dropZoneHint}>PDF, JPG, PNG — SHA-256 anchored on upload</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {Platform.OS === 'web' && (
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp,.txt"
+                      style={{ display: 'none' }}
+                      onChange={handleFileSelect}
+                    />
+                  )}
+                </View>
+              ) : (
+                <Input
+                  label="DOCUMENT CONTENT"
+                  value={docContentText}
+                  onChangeText={setDocContentText}
+                  multiline
+                  numberOfLines={5}
+                  placeholder="Paste or type document content..."
+                />
+              )}
+
+              <Input label="EXHIBIT TITLE" value={docTitle} onChangeText={setDocTitle} placeholder="e.g. FSL Cyber Examination Report" />
+              <Input label="DOCUMENT TYPE" value={docType} onChangeText={setDocType} />
 
               <View style={styles.modalActions}>
-                <Button title="CANCEL" onPress={() => setShowUploadModal(false)} variant="secondary" />
+                <Button title="CANCEL" onPress={() => { setShowUploadModal(false); resetUpload(); }} variant="secondary" />
                 <Button
-                  title={uploadMutation.isPending ? 'CALCULATING SHA-256 & ANCHORING...' : 'UPLOAD, HASH & ANCHOR IN LEDGER →'}
+                  title={uploadMutation.isPending ? 'ANCHORING...' : 'UPLOAD & ANCHOR →'}
                   onPress={handleUpload}
                   loading={uploadMutation.isPending}
                   variant="primary"
@@ -326,230 +449,197 @@ export default function CaseFileDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-  },
-  centerWrap: {
-    flex: 1,
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    fontFamily: typography.fontSans,
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  errorText: {
-    fontFamily: typography.fontSans,
-    fontSize: 13,
-    color: colors.alert,
-    textAlign: 'center',
-  },
+  container: { padding: 20 },
+  centerWrap: { flex: 1, padding: 40, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { fontFamily: typography.fontSans, fontSize: 13, color: colors.textMuted },
+  errorText: { fontFamily: typography.fontSans, fontSize: 13, color: colors.alert, textAlign: 'center' },
+
+  // Cross-case alert (compact)
   leadAlertBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.ledgerGoldLight,
     borderWidth: 1,
     borderColor: colors.ledgerGoldBorder,
-    padding: 12,
-    borderRadius: 2,
-    marginBottom: 16,
-    gap: 12,
-    flexWrap: 'wrap',
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 14,
+    gap: 8,
   },
-  leadIcon: {
-    fontSize: 20,
-    color: colors.ledgerGold,
-  },
+  leadIcon: { fontSize: 14 },
   leadTitle: {
     fontFamily: typography.fontSans,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.ledgerGold,
-    letterSpacing: 0.5,
+    flex: 1,
   },
-  leadDesc: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
+  leadArrow: { fontSize: 18, color: colors.ledgerGold },
+
+  // Tabs
   tabsRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDark,
-    marginBottom: 16,
-    flexWrap: 'wrap',
+    marginBottom: 14,
   },
   tabBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
-    marginRight: 4,
+    marginRight: 2,
   },
   tabBtnActive: {
     borderBottomColor: colors.primary,
-    backgroundColor: colors.surfaceSelected,
+    backgroundColor: colors.primaryLight,
   },
   tabText: {
     fontFamily: typography.fontSans,
     fontSize: 11,
     fontWeight: '700',
     color: colors.textSecondary,
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
-  tabTextActive: {
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  docItemCard: {
+  tabTextActive: { color: colors.primary },
+  tabCount: { fontWeight: '800' },
+
+  // Document cards
+  docCard: {
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 2,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 4,
+    padding: 12,
+    marginBottom: 10,
   },
-  docTopLine: {
+  docTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
-  docTypeBadge: {
+  docTypePill: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderDark,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   docTypeText: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
-  docActions: {
-    flexDirection: 'row',
-    gap: 6,
+  docActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  hashToggleBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 3,
+    backgroundColor: colors.surface,
+  },
+  hashToggleText: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.3,
   },
   docTitle: {
-    fontFamily: typography.fontSerif,
-    fontSize: 15,
+    fontFamily: typography.fontSans,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 2,
   },
   docMeta: {
     fontFamily: typography.fontSans,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textMuted,
     marginBottom: 6,
   },
-  ocrTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginVertical: 6,
-    flexWrap: 'wrap',
-  },
-  ocrLabel: {
-    fontFamily: typography.fontSans,
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.textMuted,
-  },
+  ocrTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 6 },
   ocrTag: {
     backgroundColor: colors.primaryLight,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 2,
   },
-  ocrText: {
-    fontFamily: typography.fontMono,
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.primary,
+  ocrText: { fontFamily: typography.fontMono, fontSize: 9, fontWeight: '700', color: colors.primary },
+  ocrMore: { fontFamily: typography.fontSans, fontSize: 9, color: colors.textMuted, alignSelf: 'center' },
+  hashExpanded: {
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   ledgerTxText: {
     fontFamily: typography.fontMono,
-    fontSize: 10,
+    fontSize: 9,
     color: colors.ledgerGold,
     marginTop: 4,
   },
-  workflowGatewayBox: {
+
+  // Empty
+  emptyWrap: { padding: 32, alignItems: 'center' },
+  emptyIcon: { fontSize: 28, marginBottom: 8 },
+  emptyText: { fontFamily: typography.fontSans, fontSize: 12, color: colors.textMuted },
+
+  // Workflow
+  workflowBox: {
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    borderRadius: 2,
+    borderRadius: 4,
+    padding: 14,
   },
-  workflowGateTitle: {
-    fontFamily: typography.fontSerif,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  workflowGateDesc: {
+  workflowStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  workflowDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.statusPending },
+  workflowDotFiled: { backgroundColor: colors.verified },
+  workflowStatus: {
     fontFamily: typography.fontSans,
     fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-    lineHeight: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: 0.3,
   },
+  workflowMeta: { fontFamily: typography.fontMono, fontSize: 10, color: colors.textMuted },
+  workflowDesc: { fontFamily: typography.fontSans, fontSize: 11, color: colors.textSecondary, lineHeight: 16 },
+
+  // Lead cards (cross-case)
   leadCard: {
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 2,
-    padding: 12,
-    marginBottom: 10,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 8,
   },
-  leadHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  leadTargetCase: {
-    fontFamily: typography.fontMono,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  leadTargetTitle: {
-    fontFamily: typography.fontSerif,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  leadDetail: {
-    fontFamily: typography.fontSans,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  leadDisclaimer: {
-    fontFamily: typography.fontSans,
-    fontSize: 9,
-    color: colors.alert,
-    marginTop: 4,
-    fontWeight: '700',
-  },
-  emptyText: {
+  leadHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  leadTargetCase: { fontFamily: typography.fontMono, fontSize: 11, fontWeight: '700', color: colors.primary },
+  expandChevron: {
+    marginLeft: 'auto',
     fontFamily: typography.fontSans,
     fontSize: 12,
     color: colors.textMuted,
-    fontStyle: 'italic',
+    fontWeight: '700',
   },
+  leadTargetTitle: { fontFamily: typography.fontSans, fontSize: 12, fontWeight: '700', color: colors.textPrimary },
+  leadExpandedBody: { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: colors.border },
+  leadDetail: { fontFamily: typography.fontSans, fontSize: 11, color: colors.textSecondary },
+  leadDisclaimer: { fontFamily: typography.fontSans, fontSize: 9, color: colors.alert, marginTop: 3, fontWeight: '700' },
+
+  // Modal
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(19, 32, 42, 0.7)',
@@ -559,45 +649,83 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 620,
+    maxWidth: 560,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderDark,
-    borderRadius: 2,
+    borderRadius: 6,
     maxHeight: '90%',
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     backgroundColor: colors.surfaceMuted,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  modalTitle: {
-    fontFamily: typography.fontSerif,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primary,
+  modalTitle: { fontFamily: typography.fontSerif, fontSize: 14, fontWeight: '700', color: colors.primary },
+  closeBtn: { fontSize: 15, fontWeight: '700', color: colors.textMuted, padding: 4 },
+  modeTabs: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  closeBtn: {
-    fontSize: 16,
+  modeTab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  modeTabActive: { borderBottomColor: colors.primary, backgroundColor: colors.primaryLight },
+  modeTabText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textMuted,
-    padding: 4,
   },
-  modalBody: {
+  modeTabTextActive: { color: colors.primary },
+  modalBody: { padding: 16 },
+  dropZone: {
+    borderWidth: 2,
+    borderColor: colors.borderDark,
+    borderStyle: 'dashed',
+    borderRadius: 6,
     padding: 20,
-    paddingBottom: 30,
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: colors.surfaceMuted,
   },
+  dropZoneUploaded: {
+    borderColor: colors.verified,
+    borderStyle: 'solid',
+    backgroundColor: colors.verifiedLight,
+    padding: 12,
+    alignItems: 'flex-start',
+  },
+  dropZoneInner: { alignItems: 'center' },
+  dropZoneIcon: { fontSize: 28, marginBottom: 6 },
+  dropZoneTitle: { fontFamily: typography.fontSans, fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginBottom: 3 },
+  dropZoneHint: { fontFamily: typography.fontSans, fontSize: 10, color: colors.textMuted },
+  filePreview: { flexDirection: 'row', alignItems: 'center', gap: 10, width: '100%' },
+  fileIcon: { fontSize: 22 },
+  fileName: { fontFamily: typography.fontSans, fontSize: 12, fontWeight: '700', color: colors.textPrimary },
+  fileSize: { fontFamily: typography.fontMono, fontSize: 10, color: colors.textMuted, marginTop: 1 },
+  removeFileBtn: { padding: 4 },
+  removeFileText: { fontSize: 13, color: colors.textMuted, fontWeight: '700' },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 16,
+    gap: 10,
+    marginTop: 14,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
 });

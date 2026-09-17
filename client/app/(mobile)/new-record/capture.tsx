@@ -3,22 +3,29 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useRouter } from 'expo-router';
 import { colors, typography, Button, Panel } from '@pramaan/ui';
 
+const EVIDENCE_TYPES = [
+  { id: 'PHOTO_EXHIBIT', icon: '📸', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device' },
+  { id: 'WITNESS_STATEMENT', icon: '📝', label: 'WITNESS STATEMENT', desc: 'Spot deposition (Sec. 180 BNSS)' },
+  { id: 'SEIZURE_MEMO', icon: '📦', label: 'SEIZURE MEMO', desc: 'On-scene recovery record' },
+] as const;
+
+type CaptureType = typeof EVIDENCE_TYPES[number]['id'];
+
 export default function MobileCaptureScreen() {
   const router = useRouter();
-  const [captureType, setCaptureType] = useState<'PHOTO_EXHIBIT' | 'WITNESS_STATEMENT' | 'SEIZURE_MEMO'>('PHOTO_EXHIBIT');
-  const [isSimulatingCamera, setIsSimulatingCamera] = useState(false);
+  const [captureType, setCaptureType] = useState<CaptureType>('PHOTO_EXHIBIT');
+  const [isCapturing, setIsCapturing] = useState(false);
 
   const handleCapture = () => {
-    setIsSimulatingCamera(true);
+    setIsCapturing(true);
     setTimeout(() => {
-      setIsSimulatingCamera(false);
-      // Proceed to step 2: review
+      setIsCapturing(false);
       router.push({
         pathname: '/(mobile)/new-record/review',
         params: {
           captureType,
           capturedAt: new Date().toISOString(),
-          location: 'T. Nagar Commercial Area, Chennai (GPS: 13.0418° N, 80.2341° E)',
+          location: 'T. Nagar, Chennai (13.0418°N 80.2341°E)',
         },
       });
     }, 600);
@@ -26,53 +33,60 @@ export default function MobileCaptureScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Top Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <Button title="← Cancel" onPress={() => router.back()} variant="secondary" size="sm" />
-        <Text style={styles.stepTitle}>STEP 1: FIELD EVIDENCE CAPTURE</Text>
+        <Button title="← Back" onPress={() => router.back()} variant="secondary" size="sm" />
+        <Text style={styles.stepLabel}>STEP 1 OF 3 — CAPTURE</Text>
       </View>
 
-      {/* Camera Viewfinder Box */}
-      <View style={styles.viewfinderBox}>
-        <View style={styles.viewfinderFrame}>
-          <Text style={styles.viewfinderTarget}>[ ⛶ ]</Text>
+      {/* Viewfinder */}
+      <View style={styles.viewfinder}>
+        {/* Corner brackets */}
+        <View style={[styles.corner, styles.cornerTL]} />
+        <View style={[styles.corner, styles.cornerTR]} />
+        <View style={[styles.corner, styles.cornerBL]} />
+        <View style={[styles.corner, styles.cornerBR]} />
+
+        <View style={styles.viewfinderCenter}>
+          <Text style={styles.crosshair}>⊕</Text>
           <Text style={styles.viewfinderText}>
-            {isSimulatingCamera ? '[PROCESSING] EXPOSING & ENCRYPTING SENSOR CAPTURE...' : 'ALIGN DOCUMENT OR PHYSICAL EXHIBIT IN FRAME'}
+            {isCapturing ? 'PROCESSING...' : 'ALIGN EXHIBIT IN FRAME'}
           </Text>
-          <View style={styles.gpsBadge}>
-            <Text style={styles.gpsText}>GPS TELEMETRY: 13.0418° N, 80.2341° E (CHENNAI SOUTH)</Text>
-          </View>
         </View>
 
-        {/* Capture Trigger Button */}
+        <View style={styles.gpsBadge}>
+          <Text style={styles.gpsText}>📍 13.0418°N 80.2341°E</Text>
+        </View>
+
+        {/* Shutter */}
         <TouchableOpacity
-          activeOpacity={0.8}
+          style={[styles.shutter, isCapturing && styles.shutterCapturing]}
           onPress={handleCapture}
-          disabled={isSimulatingCamera}
-          style={styles.shutterBtn}
+          disabled={isCapturing}
+          activeOpacity={0.8}
         >
           <View style={styles.shutterInner} />
         </TouchableOpacity>
-        <Text style={styles.shutterLabel}>TAP TO CAPTURE EXHIBIT</Text>
+        <Text style={styles.shutterLabel}>{isCapturing ? 'PROCESSING...' : 'TAP TO CAPTURE'}</Text>
       </View>
 
-      {/* Capture Type Selector */}
-      <Panel title="SELECT EVIDENCE TYPE" variant="ledger">
+      {/* Evidence Type Selector */}
+      <Panel title="EVIDENCE TYPE">
         <View style={styles.typeGrid}>
-          {[
-            { id: 'PHOTO_EXHIBIT', label: 'PHOTOGRAPHIC EXHIBIT', desc: 'Physical scene or device photo' },
-            { id: 'WITNESS_STATEMENT', label: 'WITNESS DEPOSITION (180 BNSS)', desc: 'Recorded spot statement' },
-            { id: 'SEIZURE_MEMO', label: 'SEIZURE / PANCHNAMA MEMO', desc: 'On-scene recovery memo' },
-          ].map((t) => (
+          {EVIDENCE_TYPES.map((t) => (
             <TouchableOpacity
               key={t.id}
-              onPress={() => setCaptureType(t.id as any)}
+              onPress={() => setCaptureType(t.id)}
               style={[styles.typeCard, captureType === t.id && styles.typeCardActive]}
             >
-              <Text style={[styles.typeTitle, captureType === t.id && styles.typeTitleActive]}>
-                {t.label}
-              </Text>
-              <Text style={styles.typeDesc}>{t.desc}</Text>
+              <Text style={styles.typeIcon}>{t.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.typeLabel, captureType === t.id && styles.typeLabelActive]}>
+                  {t.label}
+                </Text>
+                <Text style={styles.typeDesc}>{t.desc}</Text>
+              </View>
+              {captureType === t.id && <Text style={styles.typeCheck}>✓</Text>}
             </TouchableOpacity>
           ))}
         </View>
@@ -81,121 +95,163 @@ export default function MobileCaptureScreen() {
   );
 }
 
+const CORNER_SIZE = 18;
+const CORNER_THICKNESS = 2;
+
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
+  container: { padding: 14 },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
-  stepTitle: {
+  stepLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
-    color: colors.primary,
+    color: colors.textMuted,
     letterSpacing: 0.5,
   },
-  viewfinderBox: {
-    backgroundColor: '#0F1A22',
-    borderRadius: 2,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-  },
-  viewfinderFrame: {
-    width: '100%',
-    height: 180,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-    borderStyle: 'dashed',
-    borderRadius: 2,
+
+  viewfinder: {
+    backgroundColor: '#0B1520',
+    borderRadius: 8,
+    height: 240,
+    marginBottom: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    overflow: 'hidden',
     position: 'relative',
+    paddingBottom: 70,
   },
-  viewfinderTarget: {
-    fontSize: 32,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 8,
+
+  // Corner brackets
+  corner: {
+    position: 'absolute',
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
+  },
+  cornerTL: {
+    top: 16,
+    left: 16,
+    borderTopWidth: CORNER_THICKNESS,
+    borderLeftWidth: CORNER_THICKNESS,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  cornerTR: {
+    top: 16,
+    right: 16,
+    borderTopWidth: CORNER_THICKNESS,
+    borderRightWidth: CORNER_THICKNESS,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  cornerBL: {
+    bottom: 80,
+    left: 16,
+    borderBottomWidth: CORNER_THICKNESS,
+    borderLeftWidth: CORNER_THICKNESS,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  cornerBR: {
+    bottom: 80,
+    right: 16,
+    borderBottomWidth: CORNER_THICKNESS,
+    borderRightWidth: CORNER_THICKNESS,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+
+  viewfinderCenter: { alignItems: 'center' },
+  crosshair: {
+    fontSize: 28,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 6,
   },
   viewfinderText: {
     fontFamily: typography.fontMono,
     fontSize: 10,
-    color: colors.textInverse,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-    paddingHorizontal: 12,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.8,
   },
+
   gpsBadge: {
     position: 'absolute',
-    bottom: 8,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    bottom: 68,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   gpsText: {
     fontFamily: typography.fontMono,
     fontSize: 9,
-    color: colors.verifiedLight,
+    color: 'rgba(255,255,255,0.8)',
   },
-  shutterBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  shutter: {
+    position: 'absolute',
+    bottom: 14,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  shutterCapturing: { backgroundColor: 'rgba(255,255,255,0.4)' },
   shutterInner: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: colors.alert,
   },
   shutterLabel: {
+    position: 'absolute',
+    bottom: 2,
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '800',
-    color: colors.textInverse,
-    marginTop: 8,
+    color: 'rgba(255,255,255,0.6)',
     letterSpacing: 0.5,
   },
-  typeGrid: {
-    gap: 8,
-  },
+
+  // Type Grid
+  typeGrid: { gap: 6 },
   typeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 6,
     padding: 10,
-    borderRadius: 2,
+    gap: 10,
   },
   typeCardActive: {
     backgroundColor: colors.primaryLight,
     borderColor: colors.primary,
   },
-  typeTitle: {
+  typeIcon: { fontSize: 20 },
+  typeLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  typeTitleActive: {
-    color: colors.primary,
-  },
+  typeLabelActive: { color: colors.primary },
   typeDesc: {
     fontFamily: typography.fontSans,
     fontSize: 10,
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: 1,
+  },
+  typeCheck: {
+    fontFamily: typography.fontSans,
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

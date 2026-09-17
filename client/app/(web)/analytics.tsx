@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { colors, typography, Panel, DataTable, StatusTag } from '@pramaan/ui';
+import { colors, typography, Panel, DataTable } from '@pramaan/ui';
 import { api } from '../../services/api';
 
 export default function AnalyticsScreen() {
@@ -11,76 +11,50 @@ export default function AnalyticsScreen() {
   });
 
   const stateColumns = [
-    { key: 'stateName', header: 'STATE / UT', width: 140 },
-    { key: 'totalRegistered', header: 'REGISTERED CASES', width: 150 },
-    { key: 'underInvestigation', header: 'INVESTIGATION', width: 140 },
-    { key: 'chargeSheetsFiled', header: 'CHARGE SHEETS FILED', width: 160 },
+    { key: 'stateName', header: 'STATE', width: 130 },
+    { key: 'totalRegistered', header: 'CASES', width: 90 },
+    { key: 'underInvestigation', header: 'ACTIVE', width: 90 },
+    { key: 'chargeSheetsFiled', header: 'FILED', width: 90 },
     {
       key: 'convictionRatePercent',
-      header: 'CONVICTION RATE',
-      width: 140,
+      header: 'CONVICTION',
+      width: 100,
       render: (item: any) => (
-        <Text style={{ fontWeight: '700', color: colors.verified }}>
+        <Text style={[styles.convRate, { color: item.convictionRatePercent >= 60 ? colors.verified : colors.alert }]}>
           {item.convictionRatePercent}%
         </Text>
       ),
     },
-    { key: 'avgDaysToChargeSheet', header: 'AVG DAYS TO FILE', flex: 1 },
+    { key: 'avgDaysToChargeSheet', header: 'AVG DAYS', flex: 1 },
+  ];
+
+  const keyMetrics = [
+    { label: 'TOTAL CASES', value: stats?.totalCases ?? 0, color: colors.primary, icon: '📋' },
+    { label: 'CHARGE SHEET RATE', value: `${stats?.chargeSheetsFiledRate ?? 0}%`, color: colors.verified, icon: '📊' },
+    { label: 'AVG DAYS TO FILE', value: `${stats?.avgChargeSheetDays ?? 0}d`, color: colors.primary, icon: '⏱️' },
+    { label: 'LEDGER BLOCKS', value: stats?.totalEvidenceAnchored ?? 0, color: colors.ledgerGold, icon: '🔐' },
   ];
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Official Heading */}
       <View style={styles.header}>
-        <Text style={styles.title}>NATIONAL CRIME RECORDS AGGREGATE ANALYTICS</Text>
-        <Text style={styles.subtitle}>
-          De-identified crime disposal statistics, statutory disposal metrics, and cross-state trends
-        </Text>
-        <View style={styles.disclaimerBox}>
-          <Text style={styles.disclaimerText}>
-            [STATUTORY NOTICE] {stats?.disclaimer || 'OFFICIAL SYSTEM TELEMETRY — LIVE CHAIN-OF-CUSTODY AUDIT'}
-          </Text>
-        </View>
+        <Text style={styles.title}>NCRB ANALYTICS</Text>
+        <Text style={styles.subtitle}>National crime disposal statistics • De-identified</Text>
       </View>
 
-      {/* Aggregate Overview Metrics */}
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>TOTAL RECORDED CASES (NATIONAL)</Text>
-          <Text style={styles.metricVal}>{stats?.totalCases ?? 0}</Text>
-          <Text style={styles.metricSub}>Live digital cases in register</Text>
-        </View>
-
-        <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>NATIONAL CHARGE SHEET RATE</Text>
-          <Text style={[styles.metricVal, { color: colors.verified }]}>
-            {stats?.chargeSheetsFiledRate ?? 0}%
-          </Text>
-          <Text style={styles.metricSub}>Statutory compliance benchmark</Text>
-        </View>
-
-        <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>AVERAGE DAYS TO CHARGE SHEET</Text>
-          <Text style={[styles.metricVal, { color: colors.primary }]}>
-            {stats?.avgChargeSheetDays ?? 0} Days
-          </Text>
-          <Text style={styles.metricSub}>Statutory turnaround timeline</Text>
-        </View>
-
-        <View style={styles.metricBox}>
-          <Text style={styles.metricLabel}>BLOCKCHAIN LEDGER BLOCKS</Text>
-          <Text style={[styles.metricVal, { color: colors.ledgerGold }]}>
-            {stats?.totalEvidenceAnchored ?? 0}
-          </Text>
-          <Text style={styles.metricSub}>Immutable audit anchors</Text>
-        </View>
+      {/* Key Metrics */}
+      <View style={styles.metricsRow}>
+        {keyMetrics.map((m, i) => (
+          <View key={i} style={[styles.metricCard, { borderLeftColor: m.color }]}>
+            <Text style={styles.metricIcon}>{m.icon}</Text>
+            <Text style={[styles.metricVal, { color: m.color }]}>{m.value}</Text>
+            <Text style={styles.metricLabel}>{m.label}</Text>
+          </View>
+        ))}
       </View>
 
-      {/* State-Level Breakdown */}
-      <Panel
-        title="STATE / UNION TERRITORY STATISTICAL BREAKDOWN"
-        subtitle="De-identified case progression and forensic turnaround by state jurisdiction"
-      >
+      {/* State Breakdown Table */}
+      <Panel title="STATE BREAKDOWN">
         {stats?.states && stats.states.length > 0 ? (
           <DataTable
             columns={stateColumns}
@@ -88,213 +62,158 @@ export default function AnalyticsScreen() {
             keyExtractor={(item) => item.stateCode}
           />
         ) : (
-          <View style={{ padding: 16, alignItems: 'center' }}>
-            <Text style={{ fontFamily: typography.fontSans, fontSize: 12, color: colors.textMuted }}>
-              [CLEAN STATE] No jurisdictional cases recorded yet. Real-time statistics will populate as cases are registered.
-            </Text>
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyIcon}>📊</Text>
+            <Text style={styles.emptyText}>Statistics will populate as cases are registered.</Text>
           </View>
         )}
       </Panel>
 
-      {/* Category Breakdown & Monthly Trends */}
-      <View style={styles.twoColRow}>
+      {/* 2-col: Categories + Monthly */}
+      <View style={styles.twoCol}>
         <View style={styles.halfCol}>
-          <Panel title="CASES BY STATUTORY CATEGORY" subtitle="BNS & IT Act Section Distribution">
+          <Panel title="BY CATEGORY">
             {stats?.categories && stats.categories.length > 0 ? (
               stats.categories.map((cat: any, i: number) => (
                 <View key={i} style={styles.catRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.catName}>{cat.category}</Text>
+                    <Text style={styles.catName} numberOfLines={1}>{cat.category}</Text>
                     <Text style={styles.catSec}>{cat.bnsSection}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.catCount}>{cat.caseCount} cases</Text>
-                    <Text style={styles.catRate}>{cat.chargeSheetRate}% Filed</Text>
+                    <Text style={styles.catCount}>{cat.caseCount}</Text>
+                    <Text style={styles.catRate}>{cat.chargeSheetRate}%</Text>
                   </View>
                 </View>
               ))
             ) : (
-              <View style={{ padding: 14, alignItems: 'center' }}>
-                <Text style={{ fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted }}>
-                  No statutory category records registered.
-                </Text>
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyIcon}>📁</Text>
+                <Text style={styles.emptyText}>No category data.</Text>
               </View>
             )}
           </Panel>
         </View>
-
         <View style={styles.halfCol}>
-          <Panel title="MONTHLY DISPOSAL TRENDS" subtitle="Reported vs Charge-Sheeted vs Disposed">
+          <Panel title="MONTHLY TRENDS">
             {stats?.monthlyTrends && stats.monthlyTrends.length > 0 ? (
               stats.monthlyTrends.map((m: any, i: number) => (
                 <View key={i} style={styles.trendRow}>
                   <Text style={styles.trendMonth}>{m.month}</Text>
                   <View style={styles.trendValues}>
-                    <Text style={styles.trendReported}>Reported: {m.reported}</Text>
-                    <Text style={styles.trendFiled}>Filed: {m.chargeSheeted}</Text>
-                    <Text style={styles.trendDisposed}>Disposed: {m.disposed}</Text>
+                    <Text style={styles.trendReported}>{m.reported}</Text>
+                    <Text style={styles.trendFiled}>{m.chargeSheeted}</Text>
+                    <Text style={styles.trendDisposed}>{m.disposed}</Text>
                   </View>
                 </View>
               ))
             ) : (
-              <View style={{ padding: 14, alignItems: 'center' }}>
-                <Text style={{ fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted }}>
-                  Monthly trend aggregations will accumulate on case filings.
-                </Text>
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyIcon}>📈</Text>
+                <Text style={styles.emptyText}>No trend data.</Text>
+              </View>
+            )}
+            {stats?.monthlyTrends && stats.monthlyTrends.length > 0 && (
+              <View style={styles.trendLegend}>
+                <Text style={styles.trendReported}>■ Reported</Text>
+                <Text style={styles.trendFiled}>■ Filed</Text>
+                <Text style={styles.trendDisposed}>■ Disposed</Text>
               </View>
             )}
           </Panel>
         </View>
       </View>
-
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-  },
-  header: {
-    marginBottom: 16,
-  },
+  container: { padding: 20 },
+  header: { marginBottom: 14 },
   title: {
     fontFamily: typography.fontSerif,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.primary,
   },
   subtitle: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: colors.textMuted,
     marginTop: 2,
   },
-  disclaimerBox: {
-    backgroundColor: colors.alertLight,
-    borderWidth: 1,
-    borderColor: colors.alertBorder,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 2,
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  disclaimerText: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.alertDark,
-    letterSpacing: 0.5,
-  },
-  metricsGrid: {
+
+  metricsRow: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
+    gap: 10,
+    marginBottom: 14,
     flexWrap: 'wrap',
   },
-  metricBox: {
+  metricCard: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 120,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    borderRadius: 2,
+    borderLeftWidth: 4,
+    borderRadius: 4,
+    padding: 12,
+  },
+  metricIcon: { fontSize: 16, marginBottom: 4 },
+  metricVal: {
+    fontFamily: typography.fontMono,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   metricLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: colors.textMuted,
-    marginBottom: 6,
+    letterSpacing: 0.4,
   },
-  metricVal: {
-    fontFamily: typography.fontMono,
-    fontSize: 26,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  metricSub: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  twoColRow: {
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  halfCol: {
-    flex: 1,
-    minWidth: 320,
-  },
+  convRate: { fontFamily: typography.fontMono, fontSize: 12, fontWeight: '700' },
+
+  twoCol: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
+  halfCol: { flex: 1, minWidth: 280 },
+
   catRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  catName: {
-    fontFamily: typography.fontSans,
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  catSec: {
-    fontFamily: typography.fontMono,
-    fontSize: 11,
-    color: colors.textMuted,
-  },
-  catCount: {
-    fontFamily: typography.fontSans,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  catRate: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.verified,
-    fontWeight: '600',
-  },
+  catName: { fontFamily: typography.fontSans, fontSize: 12, fontWeight: '700', color: colors.textPrimary },
+  catSec: { fontFamily: typography.fontMono, fontSize: 9, color: colors.textMuted },
+  catCount: { fontFamily: typography.fontMono, fontSize: 12, fontWeight: '700', color: colors.primary },
+  catRate: { fontFamily: typography.fontSans, fontSize: 10, color: colors.verified, fontWeight: '600' },
+
   trendRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  trendMonth: {
-    fontFamily: typography.fontMono,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  trendValues: {
+  trendMonth: { fontFamily: typography.fontMono, fontSize: 11, fontWeight: '700', color: colors.textPrimary },
+  trendValues: { flexDirection: 'row', gap: 10 },
+  trendReported: { fontFamily: typography.fontSans, fontSize: 10, color: colors.textMuted },
+  trendFiled: { fontFamily: typography.fontSans, fontSize: 10, color: colors.primary, fontWeight: '600' },
+  trendDisposed: { fontFamily: typography.fontSans, fontSize: 10, color: colors.verified, fontWeight: '600' },
+  trendLegend: {
     flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  trendReported: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.textMuted,
-  },
-  trendFiled: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  trendDisposed: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.verified,
-    fontWeight: '600',
-  },
+
+  emptyWrap: { padding: 24, alignItems: 'center' },
+  emptyIcon: { fontSize: 24, marginBottom: 6 },
+  emptyText: { fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted, textAlign: 'center' },
 });

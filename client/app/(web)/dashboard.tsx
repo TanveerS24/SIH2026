@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -12,12 +12,12 @@ export default function DashboardScreen() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { data: cases = [], isLoading: casesLoading } = useQuery({
+  const { data: cases = [] } = useQuery({
     queryKey: ['cases'],
     queryFn: () => api.getCases(),
   });
 
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+  const { data: analytics } = useQuery({
     queryKey: ['analytics-overview'],
     queryFn: () => api.getAnalytics(),
   });
@@ -28,165 +28,101 @@ export default function DashboardScreen() {
   const isJudge = role === 'JUDGE';
   const isAnalyst = role === 'NCRB_ANALYST';
 
+  const metrics = [
+    {
+      label: 'ACTIVE CASES',
+      value: cases.length,
+      color: colors.primary,
+      icon: '📋',
+    },
+    {
+      label: 'EVIDENCE ANCHORED',
+      value: analytics?.totalEvidenceAnchored || 0,
+      color: colors.verified,
+      icon: '🔐',
+    },
+    {
+      label: 'CHARGE SHEET RATE',
+      value: `${analytics?.chargeSheetsFiledRate || 0}%`,
+      color: colors.primary,
+      icon: '📊',
+    },
+    {
+      label: 'TAMPER ALERTS',
+      value: analytics?.evidenceTamperAlerts || 0,
+      color: colors.alert,
+      icon: '⚠️',
+    },
+  ];
+
+  const actions: Record<string, { title: string; path: string; variant: any }[]> = {
+    INVESTIGATION_OFFICER: [
+      { title: 'Register New Case', path: '/(web)/cases', variant: 'primary' },
+      { title: 'Search Evidence', path: '/(web)/search', variant: 'secondary' },
+      { title: 'Workflows', path: '/(web)/cases', variant: 'outline' },
+    ],
+    PROSECUTOR: [
+      { title: 'Pending Charge Sheets', path: '/(web)/cases', variant: 'verified' },
+      { title: 'Verify Document Hashes', path: '/(web)/cases', variant: 'secondary' },
+      { title: 'Audit Trail', path: '/(web)/audit', variant: 'outline' },
+    ],
+    JUDGE: [
+      { title: 'Filed Cases', path: '/(web)/cases', variant: 'primary' },
+      { title: 'Verify Documents', path: '/(web)/cases', variant: 'secondary' },
+      { title: 'Audit Logs', path: '/(web)/audit', variant: 'outline' },
+    ],
+    NCRB_ANALYST: [
+      { title: 'NCRB Statistics', path: '/(web)/analytics', variant: 'primary' },
+      { title: 'Request Case Access', path: '/(web)/access-requests', variant: 'secondary' },
+      { title: 'Intelligence Search', path: '/(web)/search', variant: 'outline' },
+    ],
+  };
+
+  const currentActions = actions[role || ''] || [];
+
   return (
-    <ScrollView contentContainerStyle={[styles.container, isMobile && styles.containerMobile]}>
-      {/* Role Banner */}
-      <View style={[styles.roleBanner, isMobile && styles.roleBannerMobile]}>
-        <View style={isMobile ? styles.textWrapMobile : { flex: 1 }}>
-          <Text style={[styles.welcomeText, isMobile && styles.welcomeTextMobile]}>
-            WELCOME, {user?.name.toUpperCase()}
-          </Text>
-          <Text style={[styles.roleTitle, isMobile && styles.roleTitleMobile]}>
-            {user?.department} • JURISDICTION: {user?.jurisdiction.toUpperCase()}
-          </Text>
+    <ScrollView contentContainerStyle={[styles.container, isMobile && { padding: 12 }]}>
+      {/* Officer Banner */}
+      <View style={[styles.banner, isMobile && styles.bannerMobile]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.welcomeName}>{user?.name?.toUpperCase()}</Text>
+          <Text style={styles.welcomeMeta}>{user?.department} • {user?.jurisdiction}</Text>
         </View>
-        <View style={[styles.badgeWrap, isMobile && styles.badgeWrapMobile]}>
-          <StatusTag label={`AUTHORIZATION: ${role?.replace(/_/g, ' ')}`} variant="info" />
-        </View>
+        <StatusTag label={role?.replace(/_/g, ' ') || ''} variant="info" />
       </View>
 
-      {/* Top Metric Cards */}
-      <View style={styles.metricsGrid}>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>ACTIVE CASES IN JURISDICTION</Text>
-          <Text style={styles.metricVal}>{cases.length}</Text>
-          <Text style={styles.metricSub}>Recorded in digital register</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>EVIDENTIARY EXHIBITS ANCHORED</Text>
-          <Text style={[styles.metricVal, { color: colors.verified }]}>
-            {analytics?.totalEvidenceAnchored || 0}
-          </Text>
-          <Text style={styles.metricSub}>SHA-256 permissioned ledger verified</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>CHARGE SHEET DISPOSAL RATE</Text>
-          <Text style={[styles.metricVal, { color: colors.primary }]}>
-            {analytics?.chargeSheetsFiledRate || 0}%
-          </Text>
-          <Text style={styles.metricSub}>Statutory compliance benchmark</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>TAMPER / INTEGRITY ALERTS</Text>
-          <Text style={[styles.metricVal, { color: colors.alert }]}>
-            {analytics?.evidenceTamperAlerts || 0}
-          </Text>
-          <Text style={styles.metricSub}>100% cryptographic ledger consistency</Text>
-        </View>
+      {/* Metrics */}
+      <View style={styles.metricsRow}>
+        {metrics.map((m, i) => (
+          <View key={i} style={[styles.metricCard, { borderLeftColor: m.color }]}>
+            <Text style={styles.metricIcon}>{m.icon}</Text>
+            <Text style={[styles.metricVal, { color: m.color }]}>{m.value}</Text>
+            <Text style={styles.metricLabel}>{m.label}</Text>
+          </View>
+        ))}
       </View>
 
-      {/* Role-Specific Action Strip */}
-      <Panel
-        title="OPERATIONAL ACTION SHORTCUTS"
-        subtitle={`Standard Operating Procedures assigned for ${role?.replace(/_/g, ' ')}`}
-        variant="ledger"
-        style={styles.actionPanel}
-      >
-        <View style={styles.shortcutsRow}>
-          {isIO && (
-            <>
-              <Button
-                title="REGISTER NEW CASE"
-                onPress={() => router.push('/(web)/cases')}
-                variant="primary"
-                size="sm"
-              />
-              <Button
-                title="SEARCH EVIDENCE REPOSITORY"
-                onPress={() => router.push('/(web)/search')}
-                variant="secondary"
-                size="sm"
-              />
-              <Button
-                title="VIEW CHARGE SHEET WORKFLOWS"
-                onPress={() => router.push('/(web)/cases')}
-                variant="outline"
-                size="sm"
-              />
-            </>
-          )}
-
-          {isProsecutor && (
-            <>
-              <Button
-                title="SCRUTINIZE PENDING CHARGE SHEETS"
-                onPress={() => router.push('/(web)/cases')}
-                variant="verified"
-                size="sm"
-              />
-              <Button
-                title="VERIFY DOCUMENT HASHES"
-                onPress={() => router.push('/(web)/cases')}
-                variant="secondary"
-                size="sm"
-              />
-              <Button
-                title="INSPECT AUDIT TRAIL"
-                onPress={() => router.push('/(web)/audit')}
-                variant="outline"
-                size="sm"
-              />
-            </>
-          )}
-
-          {isJudge && (
-            <>
-              <Button
-                title="JUDICIAL SCRUTINY: FILED CASES"
-                onPress={() => router.push('/(web)/cases')}
-                variant="primary"
-                size="sm"
-              />
-              <Button
-                title="CRYPTOGRAPHIC DOCUMENT VERIFIER"
-                onPress={() => router.push('/(web)/cases')}
-                variant="secondary"
-                size="sm"
-              />
-              <Button
-                title="IMMUTABLE AUDIT LOGS"
-                onPress={() => router.push('/(web)/audit')}
-                variant="outline"
-                size="sm"
-              />
-            </>
-          )}
-
-          {isAnalyst && (
-            <>
-              <Button
-                title="VIEW NATIONAL NCRB STATS"
-                onPress={() => router.push('/(web)/analytics')}
-                variant="primary"
-                size="sm"
-              />
-              <Button
-                title="SUBMIT ELEVATED ACCESS REQUEST"
-                onPress={() => router.push('/(web)/access-requests')}
-                variant="secondary"
-                size="sm"
-              />
-              <Button
-                title="CROSS-CASE INTELLIGENCE"
-                onPress={() => router.push('/(web)/search')}
-                variant="outline"
-                size="sm"
-              />
-            </>
-          )}
+      {/* Quick Actions */}
+      {currentActions.length > 0 && (
+        <View style={styles.actionsRow}>
+          {currentActions.map((a, i) => (
+            <Button
+              key={i}
+              title={a.title}
+              onPress={() => router.push(a.path as any)}
+              variant={a.variant}
+              size="sm"
+            />
+          ))}
         </View>
-      </Panel>
+      )}
 
-      {/* Active Case Register Table */}
+      {/* Recent Cases */}
       <Panel
-        title="PRIORITY ACTIVE CASE REGISTER"
-        subtitle="Digital evidence cases under statutory surveillance"
+        title="RECENT CASES"
         action={
           <Button
-            title="VIEW COMPLETE REGISTER →"
+            title="All cases →"
             onPress={() => router.push('/(web)/cases')}
             variant="ghost"
             size="sm"
@@ -194,18 +130,18 @@ export default function DashboardScreen() {
         }
       >
         {cases.length === 0 ? (
-          <View style={styles.emptyStateBox}>
-            <Text style={styles.emptyStateTitle}>[CLEAN REGISTER STATE] NO CASES RECORDED</Text>
-            <Text style={styles.emptyStateDesc}>
-              There are currently no active cases registered in this jurisdiction. Click the button below to register a case and initiate chain-of-custody tracking.
-            </Text>
-            <Button
-              title="+ REGISTER OFFICIAL CASE RECORD"
-              onPress={() => router.push('/(web)/cases')}
-              variant="primary"
-              size="sm"
-              style={{ marginTop: 10 }}
-            />
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📁</Text>
+            <Text style={styles.emptyText}>No cases registered yet.</Text>
+            {isIO && (
+              <Button
+                title="Register first case →"
+                onPress={() => router.push('/(web)/cases')}
+                variant="primary"
+                size="sm"
+                style={{ marginTop: 10 }}
+              />
+            )}
           </View>
         ) : (
           cases.slice(0, 4).map((c) => (
@@ -214,163 +150,102 @@ export default function DashboardScreen() {
               id={c.id}
               primaryCode={c.caseNumber}
               title={c.title}
-              subtitle={`Jurisdiction: ${c.jurisdiction} • ${c.policeStation}`}
+              subtitle={`${c.jurisdiction} • ${c.policeStation}`}
               statusLabel={c.status.replace(/_/g, ' ')}
               statusVariant={
-                c.status === 'FILED'
-                  ? 'filed'
-                  : c.status === 'CHARGE_SHEET_PREPARED'
-                  ? 'gold'
-                  : 'info'
+                c.status === 'FILED' ? 'filed' :
+                c.status === 'CHARGE_SHEET_PREPARED' ? 'gold' : 'info'
               }
               metadataItems={[
-                { label: 'EXHIBITS', value: String(c.documentCount) },
-                { label: 'CUSTODY LOGS', value: String(c.custodyCount) },
-                { label: 'INVESTIGATOR', value: c.assignedOfficerName || 'General Registry' },
+                { label: '📂', value: String(c.documentCount) },
+                { label: '🔗', value: String(c.custodyCount) },
               ]}
-              date={new Date(c.createdAt).toLocaleDateString()}
+              date={new Date(c.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
               onPress={() => router.push(`/(web)/cases/${c.id}` as any)}
             />
           ))
         )}
       </Panel>
-
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-  },
-  containerMobile: {
-    padding: 12,
-  },
-  roleBanner: {
+  container: { padding: 20 },
+
+  banner: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderDark,
-    borderRadius: 2,
-    padding: 16,
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
-    flexWrap: 'wrap',
-    gap: 10,
+    marginBottom: 14,
+    gap: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
-  roleBannerMobile: {
-    padding: 14,
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  textWrapMobile: {
-    width: '100%',
-  },
-  welcomeText: {
+  bannerMobile: { flexWrap: 'wrap' },
+  welcomeName: {
     fontFamily: typography.fontSerif,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.primary,
   },
-  welcomeTextMobile: {
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: 0.3,
-  },
-  roleTitle: {
+  welcomeMeta: {
     fontFamily: typography.fontSans,
     fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
+    color: colors.textMuted,
     marginTop: 2,
-    letterSpacing: 0.5,
   },
-  roleTitleMobile: {
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 4,
-    letterSpacing: 0.3,
-  },
-  badgeWrap: {
-    alignItems: 'flex-end',
-  },
-  badgeWrapMobile: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-  },
-  metricsGrid: {
+
+  metricsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 14,
     flexWrap: 'wrap',
   },
   metricCard: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 120,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 2,
+    borderLeftWidth: 4,
+    borderRadius: 4,
     padding: 12,
+  },
+  metricIcon: { fontSize: 16, marginBottom: 4 },
+  metricVal: {
+    fontFamily: typography.fontMono,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   metricLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    letterSpacing: 0.4,
   },
-  metricVal: {
-    fontFamily: typography.fontMono,
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  metricSub: {
-    fontFamily: typography.fontSans,
-    fontSize: 10,
-    color: colors.textSecondary,
-  },
-  actionPanel: {
-    marginBottom: 16,
-  },
-  shortcutsRow: {
+
+  actionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  emptyStateBox: {
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 14,
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderStyle: 'dashed',
     borderColor: colors.border,
-    borderRadius: 2,
-    marginVertical: 8,
+    borderRadius: 4,
+    padding: 12,
   },
-  emptyStateTitle: {
-    fontFamily: typography.fontSans,
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: 0.6,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  emptyStateDesc: {
-    fontFamily: typography.fontSans,
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    maxWidth: 480,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-});
 
+  emptyState: { padding: 28, alignItems: 'center' },
+  emptyIcon: { fontSize: 28, marginBottom: 6 },
+  emptyText: { fontFamily: typography.fontSans, fontSize: 12, color: colors.textMuted },
+});

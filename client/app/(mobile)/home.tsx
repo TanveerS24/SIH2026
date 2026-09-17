@@ -10,254 +10,232 @@ export default function MobileHomeScreen() {
   const { user } = useAuthStore();
   const { queue, isOffline } = useSyncStore();
 
-  const recentQueue = queue.slice(0, 3);
+  const pendingCount = queue.filter((q) => q.status !== 'SYNCED').length;
+  const initials = user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'OF';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Officer ID Header */}
+      {/* Officer Card */}
       <View style={styles.officerCard}>
-        <View style={styles.avatarBox}>
-          <Text style={styles.avatarText}>ID</Text>
-        </View>
-        <View style={styles.officerDetails}>
-          <Text style={styles.officerName}>{user?.name}</Text>
-          <Text style={styles.officerBadge}>
-            BADGE: {user?.badgeNumber} • {user?.jurisdiction}
-          </Text>
-          <Text style={styles.officerDept}>{user?.department}</Text>
-        </View>
-      </View>
-
-      {/* Big Action Button: Capture Evidence */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => router.push('/(mobile)/new-record/capture')}
-        style={styles.primaryActionCard}
-      >
-        <View style={styles.primaryActionIconBox}>
-          <Text style={styles.primaryActionIcon}>[REC]</Text>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.primaryActionTitle}>CAMERA-FIRST EVIDENCE CAPTURE</Text>
-          <Text style={styles.primaryActionSub}>
-            Capture photo exhibit, classify evidence, record digital witness statement
-          </Text>
+          <Text style={styles.officerName} numberOfLines={1}>{user?.name}</Text>
+          <Text style={styles.officerMeta}>{user?.badgeNumber} • {user?.jurisdiction}</Text>
         </View>
-        <Text style={styles.primaryActionArrow}>→</Text>
-      </TouchableOpacity>
-
-      {/* Quick Status Cards */}
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>LOCAL QUEUE (SQLITE)</Text>
-          <Text style={styles.statVal}>{queue.length}</Text>
-          <Text style={styles.statSub}>
-            {isOffline ? 'Queued offline' : 'Pending server sync'}
-          </Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>DEVICE STATUS</Text>
-          <Text style={[styles.statVal, { color: isOffline ? colors.alert : colors.verified }]}>
-            {isOffline ? 'OFFLINE' : 'ONLINE'}
-          </Text>
-          <Text style={styles.statSub}>
-            {isOffline ? 'Local storage active' : 'API connected'}
-          </Text>
-        </View>
+        <View style={[styles.onlineDot, isOffline && styles.offlineDot]} />
       </View>
 
-      {/* Recent Local Records */}
-      <Panel
-        title="RECENT LOCAL SUBMISSIONS"
-        subtitle="Records captured on this handset"
-        action={
-          <Button
-            title="VIEW QUEUE →"
-            onPress={() => router.push('/(mobile)/sync')}
-            variant="ghost"
-            size="sm"
-          />
-        }
+      {/* Primary CTA */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => router.push('/(mobile)/new-record/capture')}
+        style={styles.captureBtn}
       >
-        {recentQueue.map((item) => (
-          <View key={item.localId} style={styles.recordItem}>
-            <View style={styles.recHeader}>
-              <Text style={styles.recTitle}>{item.payload.title || item.payload.fileName}</Text>
-              <StatusTag
-                label={item.status}
-                variant={item.status === 'SYNCED' ? 'verified' : item.status === 'FAILED' ? 'alert' : 'neutral'}
-                size="sm"
-              />
-            </View>
-            <Text style={styles.recMeta}>
-              {item.payload.documentType} • {new Date(item.createdAt).toLocaleTimeString()}
-            </Text>
-            <Text style={styles.recKey}>KEY: {item.idempotencyKey}</Text>
-          </View>
-        ))}
+        <Text style={styles.captureBtnIcon}>📷</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.captureBtnTitle}>CAPTURE EVIDENCE</Text>
+          <Text style={styles.captureBtnSub}>Photo • Witness statement • Seizure memo</Text>
+        </View>
+        <Text style={styles.captureBtnArrow}>→</Text>
+      </TouchableOpacity>
 
-        {recentQueue.length === 0 && (
-          <Text style={styles.emptyText}>No field records captured yet on this device.</Text>
+      {/* Status Bar */}
+      <View style={styles.statusRow}>
+        <View style={styles.statusCard}>
+          <Text style={[styles.statusVal, { color: isOffline ? colors.alert : colors.verified }]}>
+            {isOffline ? 'OFFLINE' : 'ONLINE'}
+          </Text>
+          <Text style={styles.statusLabel}>DEVICE</Text>
+        </View>
+        <View style={styles.statusCard}>
+          <Text style={[styles.statusVal, { color: pendingCount > 0 ? colors.ledgerGold : colors.textPrimary }]}>
+            {queue.length}
+          </Text>
+          <Text style={styles.statusLabel}>QUEUE</Text>
+        </View>
+        {pendingCount > 0 && (
+          <TouchableOpacity style={styles.syncBtn} onPress={() => router.push('/(mobile)/sync')}>
+            <Text style={styles.syncBtnText}>SYNC {pendingCount} →</Text>
+          </TouchableOpacity>
         )}
-      </Panel>
+      </View>
+
+      {/* Recent Records */}
+      {queue.length > 0 && (
+        <Panel
+          title="RECENT"
+          action={
+            <Button title="All →" onPress={() => router.push('/(mobile)/sync')} variant="ghost" size="sm" />
+          }
+        >
+          {queue.slice(0, 3).map((item) => (
+            <View key={item.localId} style={styles.recordItem}>
+              <View style={styles.recRow}>
+                <Text style={styles.recTitle} numberOfLines={1}>
+                  {item.payload.title || item.payload.fileName || 'Record'}
+                </Text>
+                <StatusTag
+                  label={item.status}
+                  variant={item.status === 'SYNCED' ? 'verified' : item.status === 'FAILED' ? 'alert' : 'neutral'}
+                  size="sm"
+                />
+              </View>
+              <Text style={styles.recMeta}>
+                {item.payload.documentType} • {new Date(item.createdAt).toLocaleTimeString('en-IN', { timeStyle: 'short' })}
+              </Text>
+            </View>
+          ))}
+        </Panel>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
+  container: { padding: 14 },
+
   officerCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderDark,
-    borderRadius: 2,
+    borderColor: colors.border,
+    borderRadius: 6,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 12,
   },
-  avatarBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
   avatarText: {
-    fontFamily: typography.fontMono,
-    fontSize: 13,
+    fontFamily: typography.fontSans,
+    fontSize: 14,
     fontWeight: '800',
-    color: colors.primary,
-  },
-  officerDetails: {
-    flex: 1,
+    color: colors.textInverse,
   },
   officerName: {
-    fontFamily: typography.fontSerif,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  officerBadge: {
-    fontFamily: typography.fontMono,
-    fontSize: 10,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  officerDept: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
-    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
-  primaryActionCard: {
+  officerMeta: {
+    fontFamily: typography.fontMono,
+    fontSize: 9,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.verified,
+  },
+  offlineDot: { backgroundColor: colors.alert },
+
+  captureBtn: {
     backgroundColor: colors.primary,
-    borderRadius: 2,
+    borderRadius: 6,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
     gap: 12,
+    marginBottom: 12,
   },
-  primaryActionIconBox: {
-    width: 40,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryActionIcon: {
-    fontFamily: typography.fontMono,
-    fontSize: 11,
+  captureBtnIcon: { fontSize: 24 },
+  captureBtnTitle: {
+    fontFamily: typography.fontSans,
+    fontSize: 14,
     fontWeight: '800',
     color: colors.textInverse,
+    letterSpacing: 0.4,
   },
-  primaryActionTitle: {
-    fontFamily: typography.fontSans,
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textInverse,
-    letterSpacing: 0.5,
-  },
-  primaryActionSub: {
+  captureBtnSub: {
     fontFamily: typography.fontSans,
     fontSize: 11,
-    color: colors.primaryLight,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
-  primaryActionArrow: {
+  captureBtnArrow: {
     fontSize: 20,
     color: colors.textInverse,
     fontWeight: '700',
   },
-  statsRow: {
+
+  statusRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 14,
+    alignItems: 'center',
   },
-  statBox: {
+  statusCard: {
     flex: 1,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 12,
-    borderRadius: 2,
+    borderRadius: 4,
+    padding: 10,
+    alignItems: 'center',
   },
-  statLabel: {
+  statusVal: {
+    fontFamily: typography.fontMono,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  statusLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: colors.textMuted,
-    marginBottom: 4,
-  },
-  statVal: {
-    fontFamily: typography.fontMono,
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  statSub: {
-    fontFamily: typography.fontSans,
-    fontSize: 10,
-    color: colors.textSecondary,
     marginTop: 2,
+    letterSpacing: 0.4,
   },
+  syncBtn: {
+    backgroundColor: colors.ledgerGoldLight,
+    borderWidth: 1,
+    borderColor: colors.ledgerGoldBorder,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  syncBtnText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.ledgerGold,
+    letterSpacing: 0.3,
+  },
+
   recordItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  recHeader: {
+  recRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   recTitle: {
     fontFamily: typography.fontSans,
     fontSize: 12,
     fontWeight: '700',
     color: colors.textPrimary,
+    flex: 1,
   },
   recMeta: {
     fontFamily: typography.fontSans,
-    fontSize: 10,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  recKey: {
-    fontFamily: typography.fontMono,
     fontSize: 9,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  emptyText: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
     color: colors.textMuted,
-    fontStyle: 'italic',
+    marginTop: 2,
   },
 });

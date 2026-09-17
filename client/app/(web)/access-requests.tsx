@@ -10,9 +10,10 @@ export default function AccessRequestsScreen() {
   const { user } = useAuthStore();
   const [showModal, setShowModal] = useState(false);
   const [caseId, setCaseId] = useState('');
-  const [reason, setReason] = useState('Official statistical cross-validation and forensic corroboration under NCRB Research Directive 2026/88.');
+  const [reason, setReason] = useState('');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const { data: requests = [], isLoading } = useQuery({
+  const { data: requests = [] } = useQuery({
     queryKey: ['access-requests'],
     queryFn: () => api.getAccessRequests(),
   });
@@ -27,89 +28,101 @@ export default function AccessRequestsScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['access-requests'] });
       setShowModal(false);
+      setReason('');
     },
   });
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, approved }: { id: string; approved: boolean }) =>
       api.reviewAccessRequest(id, approved),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['access-requests'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['access-requests'] }),
   });
 
   const isSupervisor = user?.role === 'INVESTIGATION_OFFICER' || user?.role === 'JUDGE' || user?.role === 'PROSECUTOR';
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>ELEVATED CASE ACCESS CLEARANCE REGISTRY</Text>
-          <Text style={styles.subtitle}>
-            Statutory privacy gateway for analysts & non-assigned officers seeking individual case inspection
-          </Text>
+          <Text style={styles.title}>ACCESS CLEARANCE</Text>
+          <Text style={styles.subtitle}>{requests.length} request{requests.length !== 1 ? 's' : ''}</Text>
         </View>
-
         <Button
-          title="+ REQUEST ELEVATED CASE CLEARANCE"
-          onPress={() => {
-            if (cases.length > 0 && cases[0]) setCaseId(cases[0].id);
-            setShowModal(true);
-          }}
+          title="+ REQUEST ACCESS"
+          onPress={() => { if (cases[0]) setCaseId(cases[0].id); setShowModal(true); }}
           variant="primary"
+          size="sm"
         />
       </View>
 
-      <Panel
-        title={`SUBMITTED CLEARANCE REQUESTS (${requests.length})`}
-        subtitle="Immutable clearance requests with time-bounded expiration and supervisory approval"
-      >
-        {requests.map((r) => (
-          <View key={r.id} style={styles.reqCard}>
-            <View style={styles.reqCardHeader}>
-              <View>
-                <Text style={styles.reqCaseNumber}>{r.caseNumber}</Text>
-                <Text style={styles.reqCaseTitle}>{r.caseTitle}</Text>
-              </View>
-              <StatusTag
-                label={r.status}
-                variant={r.status === 'APPROVED' ? 'verified' : r.status === 'REJECTED' ? 'alert' : 'warning'}
-              />
-            </View>
-
-            <View style={styles.reqDetails}>
-              <Text style={styles.reqMeta}>
-                REQUESTER: {r.requesterName} ({r.requesterRole.replace(/_/g, ' ')}) • REQUESTED ON: {new Date(r.createdAt).toLocaleString()}
-              </Text>
-              <Text style={styles.reqReason}>JUSTIFICATION: "{r.reason}"</Text>
-              {r.expiresAt && (
-                <Text style={styles.reqExpiry}>
-                  CLEARANCE ACTIVE UNTIL: {new Date(r.expiresAt).toLocaleString()}
-                </Text>
-              )}
-            </View>
-
-            {isSupervisor && r.status === 'PENDING' && (
-              <View style={styles.reviewActions}>
-                <Button
-                  title="APPROVE ELEVATED ACCESS"
-                  onPress={() => reviewMutation.mutate({ id: r.id, approved: true })}
-                  size="sm"
-                />
-                <Button
-                  title="REJECT CLEARANCE"
-                  onPress={() => reviewMutation.mutate({ id: r.id, approved: false })}
-                  variant="danger"
-                  size="sm"
-                />
-              </View>
-            )}
+      <Panel title="REQUESTS">
+        {requests.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyIcon}>🔐</Text>
+            <Text style={styles.emptyText}>No access requests found.</Text>
           </View>
-        ))}
+        ) : requests.map((r) => {
+          const isExpanded = expandedIds.has(r.id);
+          const statusVariant = r.status === 'APPROVED' ? 'verified' : r.status === 'REJECTED' ? 'alert' : 'warning';
+          return (
+            <TouchableOpacity
+              key={r.id}
+              style={[styles.reqCard, r.status === 'PENDING' && styles.reqCardPending]}
+              onPress={() => toggleExpand(r.id)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.reqHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.reqCaseNum}>{r.caseNumber}</Text>
+                  <Text style={styles.reqCaseTitle} numberOfLines={1}>{r.caseTitle}</Text>
+                </View>
+                <StatusTag label={r.status} variant={statusVariant} size="sm" />
+                <Text style={styles.expandChevron}>{isExpanded ? '∧' : '∨'}</Text>
+              </View>
 
-        {requests.length === 0 && (
-          <Text style={styles.emptyText}>No elevated access requests found.</Text>
-        )}
+              <Text style={styles.reqMeta} numberOfLines={isExpanded ? undefined : 1}>
+                {r.requesterName} • {new Date(r.createdAt).toLocaleDateString('en-IN')}
+              </Text>
+
+              {isExpanded && (
+                <View style={styles.reqExpanded}>
+                  <Text style={styles.reqReasonLabel}>JUSTIFICATION</Text>
+                  <Text style={styles.reqReason}>"{r.reason}"</Text>
+                  {r.expiresAt && (
+                    <Text style={styles.reqExpiry}>
+                      Active until: {new Date(r.expiresAt).toLocaleString('en-IN')}
+                    </Text>
+                  )}
+
+                  {isSupervisor && r.status === 'PENDING' && (
+                    <View style={styles.reviewActions}>
+                      <Button
+                        title="APPROVE"
+                        onPress={() => reviewMutation.mutate({ id: r.id, approved: true })}
+                        size="sm"
+                        variant="verified"
+                      />
+                      <Button
+                        title="REJECT"
+                        onPress={() => reviewMutation.mutate({ id: r.id, approved: false })}
+                        variant="danger"
+                        size="sm"
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </Panel>
 
       {/* New Request Modal */}
@@ -117,15 +130,15 @@ export default function AccessRequestsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>REQUEST ELEVATED CASE CLEARANCE</Text>
+              <Text style={styles.modalTitle}>REQUEST CASE ACCESS</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Text style={styles.closeBtn}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalBody}>
-              <Text style={styles.fieldLabel}>SELECT CASE RECORD TO INSPECT:</Text>
-              <View style={styles.casePickerBox}>
+              <Text style={styles.fieldLabel}>SELECT CASE</Text>
+              <ScrollView style={styles.casePickerBox} nestedScrollEnabled>
                 {cases.map((c) => (
                   <TouchableOpacity
                     key={c.id}
@@ -135,27 +148,28 @@ export default function AccessRequestsScreen() {
                     <Text style={[styles.caseOptNum, caseId === c.id && styles.caseOptNumActive]}>
                       {c.caseNumber}
                     </Text>
-                    <Text style={styles.caseOptTitle}>{c.title}</Text>
+                    <Text style={styles.caseOptTitle} numberOfLines={1}>{c.title}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
 
               <Input
-                label="WRITTEN STATUTORY JUSTIFICATION (MIN 20 CHARACTERS)"
+                label="JUSTIFICATION"
                 value={reason}
                 onChangeText={setReason}
                 multiline
                 numberOfLines={3}
-                hint="Document justification will be permanently audited."
+                placeholder="State your reason for access..."
               />
 
               <View style={styles.modalActions}>
                 <Button title="CANCEL" onPress={() => setShowModal(false)} variant="secondary" />
                 <Button
-                  title={createMutation.isPending ? 'SUBMITTING...' : 'SUBMIT CLEARANCE REQUEST →'}
+                  title={createMutation.isPending ? 'SUBMITTING...' : 'SUBMIT REQUEST →'}
                   onPress={() => createMutation.mutate()}
                   loading={createMutation.isPending}
                   variant="primary"
+                  disabled={!caseId || !reason}
                 />
               </View>
             </View>
@@ -167,91 +181,106 @@ export default function AccessRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-  },
+  container: { padding: 20 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   title: {
     fontFamily: typography.fontSerif,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.primary,
   },
   subtitle: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: colors.textMuted,
     marginTop: 2,
   },
+
+  emptyWrap: { padding: 32, alignItems: 'center' },
+  emptyIcon: { fontSize: 28, marginBottom: 8 },
+  emptyText: { fontFamily: typography.fontSans, fontSize: 12, color: colors.textMuted },
+
   reqCard: {
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 2,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 4,
+    padding: 12,
+    marginBottom: 8,
   },
-  reqCardHeader: {
+  reqCardPending: { borderLeftWidth: 4, borderLeftColor: colors.ledgerGold },
+  reqHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 8,
+    marginBottom: 4,
   },
-  reqCaseNumber: {
+  reqCaseNum: {
     fontFamily: typography.fontMono,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
   },
   reqCaseTitle: {
-    fontFamily: typography.fontSerif,
-    fontSize: 14,
+    fontFamily: typography.fontSans,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  reqDetails: {
-    marginVertical: 4,
+  expandChevron: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '700',
+    marginLeft: 4,
   },
   reqMeta: {
     fontFamily: typography.fontSans,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textMuted,
+  },
+  reqExpanded: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  reqReasonLabel: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.textMuted,
+    marginBottom: 3,
+    letterSpacing: 0.4,
   },
   reqReason: {
     fontFamily: typography.fontSans,
     fontSize: 12,
     color: colors.textPrimary,
-    marginTop: 4,
     fontStyle: 'italic',
+    marginBottom: 6,
+    lineHeight: 17,
   },
   reqExpiry: {
     fontFamily: typography.fontMono,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.verifiedDark,
-    marginTop: 4,
     fontWeight: '700',
+    marginBottom: 8,
   },
   reviewActions: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 10,
+    marginTop: 4,
   },
-  emptyText: {
-    fontFamily: typography.fontSans,
-    fontSize: 12,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-  },
+
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(19, 32, 42, 0.7)',
@@ -261,80 +290,57 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 580,
+    maxWidth: 520,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderDark,
-    borderRadius: 2,
+    borderRadius: 6,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     backgroundColor: colors.surfaceMuted,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  modalTitle: {
-    fontFamily: typography.fontSerif,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  closeBtn: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textMuted,
-    padding: 4,
-  },
-  modalBody: {
-    padding: 20,
-    paddingBottom: 30,
-  },
+  modalTitle: { fontFamily: typography.fontSerif, fontSize: 14, fontWeight: '700', color: colors.primary },
+  closeBtn: { fontSize: 15, fontWeight: '700', color: colors.textMuted, padding: 4 },
+  modalBody: { padding: 16 },
   fieldLabel: {
     fontFamily: typography.fontSans,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    color: colors.textSecondary,
+    color: colors.textMuted,
     marginBottom: 6,
+    letterSpacing: 0.4,
   },
   casePickerBox: {
-    maxHeight: 160,
+    maxHeight: 140,
     borderWidth: 1,
     borderColor: colors.borderDark,
-    borderRadius: 2,
-    marginBottom: 14,
+    borderRadius: 4,
+    marginBottom: 12,
   },
-  caseOption: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  caseOptionActive: {
-    backgroundColor: colors.primaryLight,
-  },
+  caseOption: { padding: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  caseOptionActive: { backgroundColor: colors.primaryLight },
   caseOptNum: {
     fontFamily: typography.fontMono,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  caseOptNumActive: {
-    color: colors.primary,
-  },
-  caseOptTitle: {
-    fontFamily: typography.fontSans,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
+  caseOptNumActive: { color: colors.primary },
+  caseOptTitle: { fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 16,
+    gap: 10,
+    marginTop: 14,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: 16,
+    paddingTop: 12,
   },
 });
