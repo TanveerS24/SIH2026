@@ -92,13 +92,35 @@ services:
       SIMULATE_MALWARE_SCAN: "true"
       SIMULATE_OCR_AI: "true"
       SIMULATE_LEDGER: "true"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      RAG_STRICT_MODE: "true"
+      RAG_CHUNK_SIZE: "500"
+      RAG_CHUNK_OVERLAP: "100"
+      RAG_TOP_K: "5"
+      RAG_SIMILARITY_THRESHOLD: "0.3"
     ports:
       - "4000:4000"
+    volumes:
+      - ./server/src:/app/server/src
+      - ./shared/src:/app/shared/src
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - pramaan_network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: pramaan_ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
     networks:
       - pramaan_network
 
@@ -121,6 +143,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  ollama_data:
 
 networks:
   pramaan_network:

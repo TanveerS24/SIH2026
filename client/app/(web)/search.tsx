@@ -73,12 +73,30 @@ export default function SearchScreen() {
       {/* AI Synthesis Summary Card */}
       {searchResults?.aiSummary && (
         <Panel
-          title="AI-ASSISTED INVESTIGATIVE ADVISORY DIGEST"
-          subtitle="Synthesized metadata correlation across case registries and OCR text"
+          title="STRICT RAG INVESTIGATIVE ADVISORY DIGEST"
+          subtitle="Grounded evidence synthesis via Qwen 2.5 7B & Nomic-Embed-Text"
           variant="ledger"
         >
           <View style={styles.aiBox}>
+            <View style={styles.ragBadgeRow}>
+              <View style={styles.ragTag}>
+                <Text style={styles.ragTagText}>STRICT RAG GROUNDED</Text>
+              </View>
+              <Text style={styles.ragModelText}>MODELS: QWEN2.5:7B • NOMIC-EMBED-TEXT</Text>
+            </View>
             <Text style={styles.aiText}>{searchResults.aiSummary}</Text>
+            {searchResults?.citedEvidence && searchResults.citedEvidence.length > 0 && (
+              <View style={styles.citedContainer}>
+                <Text style={styles.citedHeader}>VERIFIED CITATIONS ({searchResults.citedEvidence.length} EXHIBITS):</Text>
+                {searchResults.citedEvidence.map((cite: any, i: number) => (
+                  <View key={i} style={styles.citeItem}>
+                    <Text style={styles.citeType}>[{cite.documentType}]</Text>
+                    <Text style={styles.citeTitle}>{cite.title}</Text>
+                    <Text style={styles.citeHash}>SHA-256: {cite.sha256Hash?.substring(0, 16)}...</Text>
+                  </View>
+                ))}
+              </View>
+            )}
             <Text style={styles.aiDisclaimer}>{searchResults.aiNotice}</Text>
           </View>
         </Panel>
@@ -221,6 +239,62 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.ledgerGoldBorder,
     paddingTop: 6,
+  },
+  ragBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  ragTag: {
+    backgroundColor: '#0F3460',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  ragTagText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  ragModelText: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  citedContainer: {
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 2,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0F3460',
+  },
+  citedHeader: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  citeItem: {
+    marginVertical: 2,
+  },
+  citeType: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F3460',
+  },
+  citeTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  citeHash: {
+    fontSize: 9,
+    fontFamily: typography.fontMono || 'monospace',
+    color: colors.textMuted,
   },
   emptyText: {
     fontFamily: typography.fontSans,

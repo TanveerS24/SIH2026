@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../config/prisma.js';
-import { documentAIService } from '../../services/ai.service.js';
+import { ragService } from '../../services/rag.service.js';
 import { auditService } from '../../services/audit.service.js';
 import { AuditAction } from '@prisma/client';
 
@@ -67,16 +67,19 @@ export async function searchRoutes(fastify: FastifyInstance) {
       },
     });
 
-    // 3. AI Semantic Pattern Match & Advisory Summary
+    // 3. AI Strict RAG Grounded Summary
     let aiSummary = '';
-    if (searchQuery) {
-      const allCases = await prisma.case.findMany({ take: 50 });
-      const semanticMatches = await documentAIService.semanticSearch(searchQuery, allCases);
+    let citedEvidence: any[] = [];
+    let isGrounded = false;
 
-      if (semanticMatches.length > 0) {
-        aiSummary = `[AI Advisory Synthesis — Non-Authoritative]\nFound ${matchingCases.length} matching case record(s) and ${matchingDocuments.length} evidentiary document(s). Semantic correlation analysis detected matching modus-operandi and geographical patterns (${semanticMatches[0]?.aiMatchExplanation || 'Pattern overlap'}).`;
-      } else {
-        aiSummary = `[AI Advisory Synthesis]\nQuery '${searchQuery}' returned ${matchingCases.length} registered case(s) and ${matchingDocuments.length} document record(s).`;
+    if (searchQuery) {
+      try {
+        const ragResult = await ragService.query(searchQuery, { topK: 4 });
+        aiSummary = ragResult.answer;
+        citedEvidence = ragResult.citedEvidence;
+        isGrounded = ragResult.isGrounded;
+      } catch (err: any) {
+        aiSummary = `Query '${searchQuery}' returned ${matchingCases.length} registered case(s) and ${matchingDocuments.length} document record(s).`;
       }
     }
 
@@ -119,7 +122,9 @@ export async function searchRoutes(fastify: FastifyInstance) {
         createdAt: d.createdAt.toISOString(),
       })),
       aiSummary,
-      aiNotice: 'AI-generated summary provided solely for investigative lead correlation. Does not constitute judicial proof.',
+      citedEvidence,
+      isGrounded,
+      aiNotice: 'Strict RAG advisory digest sourced strictly from verified custody exhibits under BSA 2023.',
     });
   });
 }

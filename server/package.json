@@ -10,6 +10,8 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:rag": "vitest run tests/rag.test.ts",
+    "ai:ci-cd": "tsx src/ai-pipeline/ai-ci-cd-runner.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts"

@@ -35,6 +35,25 @@ Thumbs.db
 *.sqlite-journal
 postgres_data/
 minio_data/
+ollama_data/
+
+# AI Pipeline & Model Checkpoints
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+checkpoint-*/
+ai-pipeline/stage2-train/output/
+ai-pipeline/stage2-train/data/
+output/
 
 # Test Coverage
 coverage/

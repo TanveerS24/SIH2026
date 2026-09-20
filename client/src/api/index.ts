@@ -8,6 +8,7 @@ import { auditApi } from './audit.api';
 import { analyticsApi } from './analytics.api';
 import { accessApi } from './access.api';
 import { syncApi } from './sync.api';
+import { ragApi } from './rag.api';
 
 export * from './client';
 export * from './auth.api';
@@ -20,6 +21,7 @@ export * from './audit.api';
 export * from './analytics.api';
 export * from './access.api';
 export * from './sync.api';
+export * from './rag.api';
 
 export const api = {
   // Auth
@@ -52,6 +54,12 @@ export const api = {
 
   // Search
   search: searchApi.search.bind(searchApi),
+
+  // Strict RAG
+  queryEvidence: ragApi.queryEvidence.bind(ragApi),
+  getCaseDigest: ragApi.getCaseDigest.bind(ragApi),
+  checkRagHealth: ragApi.checkHealth.bind(ragApi),
+  reindexDocument: ragApi.reindexDocument.bind(ragApi),
 
   // Audit
   getAuditLogs: auditApi.getAuditLogs.bind(auditApi),

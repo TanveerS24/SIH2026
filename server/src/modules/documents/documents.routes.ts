@@ -5,6 +5,7 @@ import { storageService } from '../../services/storage.service.js';
 import { malwareScannerService } from '../../services/malware.service.js';
 import { ledgerService } from '../../services/ledger.service.js';
 import { documentAIService } from '../../services/ai.service.js';
+import { ragService } from '../../services/rag.service.js';
 import { auditService } from '../../services/audit.service.js';
 
 import { Role, AuditAction, CustodyAction, DocumentType, DocumentStatus } from '@prisma/client';
@@ -169,6 +170,18 @@ export async function documentsRoutes(fastify: FastifyInstance) {
         },
       ],
     });
+
+    // G2. Index Document Chunks for Strict RAG with Nomic-Embed-Text
+    if (extractedText) {
+      await ragService.indexDocument(doc.id, extractedText, caseId, {
+        documentType: doc.documentType,
+        title: doc.title,
+        sha256Hash: doc.sha256Hash,
+        originalFileName,
+      }).catch((e) => {
+        fastify.log.warn(`RAG indexing warning for doc ${doc.id}: ${e.message}`);
+      });
+    }
 
     // H. Audit Log Record
     await auditService.logAction({

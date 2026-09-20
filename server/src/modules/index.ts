@@ -9,6 +9,7 @@ import { searchRoutes } from './search/index.js';
 import { analyticsRoutes } from './analytics/index.js';
 import { accessRoutes } from './access/index.js';
 import { syncRoutes } from './sync/index.js';
+import { ragRoutes } from './ai/rag.routes.js';
 
 export async function registerAllRoutes(app: FastifyInstance): Promise<void> {
   await app.register(authRoutes, { prefix: '/auth' });
@@ -21,6 +22,7 @@ export async function registerAllRoutes(app: FastifyInstance): Promise<void> {
   await app.register(analyticsRoutes, { prefix: '/analytics' });
   await app.register(accessRoutes, { prefix: '/access-requests' });
   await app.register(syncRoutes, { prefix: '/sync' });
+  await app.register(ragRoutes, { prefix: '/ai/rag' });
 }
 
 export * from './auth/index.js';

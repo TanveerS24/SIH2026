@@ -26,6 +26,14 @@ const EnvSchema = z.object({
   SIMULATE_MALWARE_SCAN: z.string().transform((v) => v === 'true').default('true'),
   SIMULATE_OCR_AI: z.string().transform((v) => v === 'true').default('true'),
   SIMULATE_LEDGER: z.string().transform((v) => v === 'true').default('true'),
+  OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
+  LLM_MODEL: z.string().default('qwen2.5:7b'),
+  EMBEDDING_MODEL: z.string().default('nomic-embed-text'),
+  RAG_STRICT_MODE: z.string().transform((v) => v === 'true').default('true'),
+  RAG_CHUNK_SIZE: z.string().transform((v) => parseInt(v, 10)).default('500'),
+  RAG_CHUNK_OVERLAP: z.string().transform((v) => parseInt(v, 10)).default('100'),
+  RAG_TOP_K: z.string().transform((v) => parseInt(v, 10)).default('5'),
+  RAG_SIMILARITY_THRESHOLD: z.string().transform((v) => parseFloat(v)).default('0.3'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

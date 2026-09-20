@@ -181,6 +181,7 @@ model Case {
   workflowRequirements WorkflowRequirement[]
   accessRequests      AccessRequest[]
   searchIndex         SearchIndex?
+  chunks              DocumentChunk[]
 }
 
 model CaseAssignment {
@@ -218,6 +219,7 @@ model Document {
   versions            DocumentVersion[]
   custodyEvents       CustodyEvent[]
   signatures          Signature[]
+  chunks              DocumentChunk[]
 }
 
 model DocumentVersion {
@@ -348,4 +350,23 @@ model LedgerBlock {
   payloadData  Json
   timestamp    DateTime @default(now())
   validatorId  String   @default("NODE_NCRB_GENESIS_VALIDATOR")
+}
+
+model DocumentChunk {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  chunkIndex  Int
+  content     String
+  startChar   Int
+  endChar     Int
+  tokenCount  Int?
+  embedding   Float[]
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([caseId])
+  @@index([documentId])
 }
