@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import { colors, typography, Button, Panel } from '@pramaan/ui';
 
 const EVIDENCE_TYPES = [
-  { id: 'PHOTO_EXHIBIT', icon: '📸', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device' },
-  { id: 'WITNESS_STATEMENT', icon: '📝', label: 'WITNESS STATEMENT', desc: 'Spot deposition (Sec. 180 BNSS)' },
-  { id: 'SEIZURE_MEMO', icon: '📦', label: 'SEIZURE MEMO', desc: 'On-scene recovery record' },
+  { id: 'PHOTO_EXHIBIT', tag: 'PHOTO', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device' },
+  { id: 'WITNESS_STATEMENT', tag: 'STATEMENT', label: 'WITNESS STATEMENT', desc: 'Spot deposition (Sec. 180 BNSS)' },
+  { id: 'SEIZURE_MEMO', tag: 'SEIZURE', label: 'SEIZURE MEMO', desc: 'On-scene recovery record' },
 ] as const;
 
 type CaptureType = typeof EVIDENCE_TYPES[number]['id'];
@@ -55,7 +55,7 @@ export default function MobileCaptureScreen() {
         </View>
 
         <View style={styles.gpsBadge}>
-          <Text style={styles.gpsText}>📍 13.0418°N 80.2341°E</Text>
+          <Text style={styles.gpsText}>GPS: 13.0418°N 80.2341°E</Text>
         </View>
 
         {/* Shutter */}
@@ -79,7 +79,7 @@ export default function MobileCaptureScreen() {
               onPress={() => setCaptureType(t.id)}
               style={[styles.typeCard, captureType === t.id && styles.typeCardActive]}
             >
-              <Text style={styles.typeIcon}>{t.icon}</Text>
+              <Text style={styles.typeTag}>[{t.tag}]</Text>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.typeLabel, captureType === t.id && styles.typeLabelActive]}>
                   {t.label}
@@ -234,7 +234,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     borderColor: colors.primary,
   },
-  typeIcon: { fontSize: 20 },
+  typeTag: {
+    fontFamily: typography.fontMono,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.primary,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
   typeLabel: {
     fontFamily: typography.fontSans,
     fontSize: 11,

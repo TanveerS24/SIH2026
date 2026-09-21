@@ -168,7 +168,7 @@ export default function CaseFileDetailScreen() {
       {/* Cross-Case Alert (compact) */}
       {relationships && relationships.relationshipsCount > 0 && (
         <TouchableOpacity style={styles.leadAlertBox} onPress={() => setActiveTab('relationships')} activeOpacity={0.8}>
-          <Text style={styles.leadIcon}>⚡</Text>
+          <Text style={styles.leadBadge}>[INTEL]</Text>
           <Text style={styles.leadTitle}>
             {relationships.relationshipsCount} cross-case intelligence link{relationships.relationshipsCount > 1 ? 's' : ''} detected
           </Text>
@@ -209,7 +209,6 @@ export default function CaseFileDetailScreen() {
         >
           {(!caseRecord.documents || caseRecord.documents.length === 0) ? (
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyIcon}>📁</Text>
               <Text style={styles.emptyText}>No exhibits ingested yet.</Text>
             </View>
           ) : caseRecord.documents.map((doc: any) => {
@@ -272,7 +271,6 @@ export default function CaseFileDetailScreen() {
         <Panel title={`CHAIN OF CUSTODY (${custodyEvents.length})`}>
           {custodyEvents.length === 0 ? (
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyIcon}>🔗</Text>
               <Text style={styles.emptyText}>No custody transactions recorded.</Text>
             </View>
           ) : (
@@ -316,7 +314,6 @@ export default function CaseFileDetailScreen() {
         <Panel title={`INTELLIGENCE LINKS (${relationships?.relationshipsCount || 0})`}>
           {(!relationships?.relationships || relationships.relationships.length === 0) ? (
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyIcon}>🔍</Text>
               <Text style={styles.emptyText}>No cross-case links detected.</Text>
             </View>
           ) : relationships.relationships.map((rel: any, idx: number) => {
@@ -365,7 +362,7 @@ export default function CaseFileDetailScreen() {
                 onPress={() => setUploadMode('file')}
               >
                 <Text style={[styles.modeTabText, uploadMode === 'file' && styles.modeTabTextActive]}>
-                  📎 UPLOAD FILE
+                  UPLOAD FILE
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -373,7 +370,7 @@ export default function CaseFileDetailScreen() {
                 onPress={() => setUploadMode('manual')}
               >
                 <Text style={[styles.modeTabText, uploadMode === 'manual' && styles.modeTabTextActive]}>
-                  ✏️ MANUAL ENTRY
+                  MANUAL ENTRY
                 </Text>
               </TouchableOpacity>
             </View>
@@ -388,9 +385,7 @@ export default function CaseFileDetailScreen() {
                   >
                     {uploadedFile ? (
                       <View style={styles.filePreview}>
-                        <Text style={styles.fileIcon}>
-                          {uploadedFile.type.includes('image') ? '🖼️' : '📄'}
-                        </Text>
+                        <Text style={styles.fileIcon}>[FILE]</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.fileName} numberOfLines={1}>{uploadedFile.name}</Text>
                           <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB</Text>
@@ -401,7 +396,6 @@ export default function CaseFileDetailScreen() {
                       </View>
                     ) : (
                       <View style={styles.dropZoneInner}>
-                        <Text style={styles.dropZoneIcon}>📂</Text>
                         <Text style={styles.dropZoneTitle}>Select file to ingest</Text>
                         <Text style={styles.dropZoneHint}>PDF, JPG, PNG — SHA-256 anchored on upload</Text>
                       </View>
@@ -467,7 +461,16 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     gap: 8,
   },
-  leadIcon: { fontSize: 14 },
+  leadBadge: {
+    fontFamily: typography.fontMono,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.ledgerGold,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
   leadTitle: {
     fontFamily: typography.fontSans,
     fontSize: 12,
@@ -709,11 +712,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   dropZoneInner: { alignItems: 'center' },
-  dropZoneIcon: { fontSize: 28, marginBottom: 6 },
   dropZoneTitle: { fontFamily: typography.fontSans, fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginBottom: 3 },
   dropZoneHint: { fontFamily: typography.fontSans, fontSize: 10, color: colors.textMuted },
   filePreview: { flexDirection: 'row', alignItems: 'center', gap: 10, width: '100%' },
-  fileIcon: { fontSize: 22 },
+  fileIcon: {
+    fontSize: 10,
+    fontFamily: typography.fontMono,
+    fontWeight: '700',
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
   fileName: { fontFamily: typography.fontSans, fontSize: 12, fontWeight: '700', color: colors.textPrimary },
   fileSize: { fontFamily: typography.fontMono, fontSize: 10, color: colors.textMuted, marginTop: 1 },
   removeFileBtn: { padding: 4 },

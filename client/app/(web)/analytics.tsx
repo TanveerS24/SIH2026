@@ -29,10 +29,10 @@ export default function AnalyticsScreen() {
   ];
 
   const keyMetrics = [
-    { label: 'TOTAL CASES', value: stats?.totalCases ?? 0, color: colors.primary, icon: '📋' },
-    { label: 'CHARGE SHEET RATE', value: `${stats?.chargeSheetsFiledRate ?? 0}%`, color: colors.verified, icon: '📊' },
-    { label: 'AVG DAYS TO FILE', value: `${stats?.avgChargeSheetDays ?? 0}d`, color: colors.primary, icon: '⏱️' },
-    { label: 'LEDGER BLOCKS', value: stats?.totalEvidenceAnchored ?? 0, color: colors.ledgerGold, icon: '🔐' },
+    { label: 'TOTAL CASES', value: stats?.totalCases ?? 0, color: colors.primary },
+    { label: 'CHARGE SHEET RATE', value: `${stats?.chargeSheetsFiledRate ?? 0}%`, color: colors.verified },
+    { label: 'AVG DAYS TO FILE', value: `${stats?.avgChargeSheetDays ?? 0}d`, color: colors.primary },
+    { label: 'LEDGER BLOCKS', value: stats?.totalEvidenceAnchored ?? 0, color: colors.ledgerGold },
   ];
 
   return (
@@ -46,7 +46,6 @@ export default function AnalyticsScreen() {
       <View style={styles.metricsRow}>
         {keyMetrics.map((m, i) => (
           <View key={i} style={[styles.metricCard, { borderLeftColor: m.color }]}>
-            <Text style={styles.metricIcon}>{m.icon}</Text>
             <Text style={[styles.metricVal, { color: m.color }]}>{m.value}</Text>
             <Text style={styles.metricLabel}>{m.label}</Text>
           </View>
@@ -63,7 +62,6 @@ export default function AnalyticsScreen() {
           />
         ) : (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>📊</Text>
             <Text style={styles.emptyText}>Statistics will populate as cases are registered.</Text>
           </View>
         )}
@@ -88,7 +86,6 @@ export default function AnalyticsScreen() {
               ))
             ) : (
               <View style={styles.emptyWrap}>
-                <Text style={styles.emptyIcon}>📁</Text>
                 <Text style={styles.emptyText}>No category data.</Text>
               </View>
             )}
@@ -109,7 +106,6 @@ export default function AnalyticsScreen() {
               ))
             ) : (
               <View style={styles.emptyWrap}>
-                <Text style={styles.emptyIcon}>📈</Text>
                 <Text style={styles.emptyText}>No trend data.</Text>
               </View>
             )}
@@ -159,7 +155,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     padding: 12,
   },
-  metricIcon: { fontSize: 16, marginBottom: 4 },
   metricVal: {
     fontFamily: typography.fontMono,
     fontSize: 22,
@@ -214,6 +209,5 @@ const styles = StyleSheet.create({
   },
 
   emptyWrap: { padding: 24, alignItems: 'center' },
-  emptyIcon: { fontSize: 24, marginBottom: 6 },
   emptyText: { fontFamily: typography.fontSans, fontSize: 11, color: colors.textMuted, textAlign: 'center' },
 });

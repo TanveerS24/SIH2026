@@ -33,25 +33,21 @@ export default function DashboardScreen() {
       label: 'ACTIVE CASES',
       value: cases.length,
       color: colors.primary,
-      icon: '📋',
     },
     {
       label: 'EVIDENCE ANCHORED',
       value: analytics?.totalEvidenceAnchored || 0,
       color: colors.verified,
-      icon: '🔐',
     },
     {
       label: 'CHARGE SHEET RATE',
       value: `${analytics?.chargeSheetsFiledRate || 0}%`,
       color: colors.primary,
-      icon: '📊',
     },
     {
       label: 'TAMPER ALERTS',
       value: analytics?.evidenceTamperAlerts || 0,
       color: colors.alert,
-      icon: '⚠️',
     },
   ];
 
@@ -95,7 +91,6 @@ export default function DashboardScreen() {
       <View style={styles.metricsRow}>
         {metrics.map((m, i) => (
           <View key={i} style={[styles.metricCard, { borderLeftColor: m.color }]}>
-            <Text style={styles.metricIcon}>{m.icon}</Text>
             <Text style={[styles.metricVal, { color: m.color }]}>{m.value}</Text>
             <Text style={styles.metricLabel}>{m.label}</Text>
           </View>
@@ -131,7 +126,6 @@ export default function DashboardScreen() {
       >
         {cases.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📁</Text>
             <Text style={styles.emptyText}>No cases registered yet.</Text>
             {isIO && (
               <Button
@@ -157,8 +151,8 @@ export default function DashboardScreen() {
                 c.status === 'CHARGE_SHEET_PREPARED' ? 'gold' : 'info'
               }
               metadataItems={[
-                { label: '📂', value: String(c.documentCount) },
-                { label: '🔗', value: String(c.custodyCount) },
+                { label: 'DOCS', value: String(c.documentCount) },
+                { label: 'CHAIN', value: String(c.custodyCount) },
               ]}
               date={new Date(c.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
               onPress={() => router.push(`/(web)/cases/${c.id}` as any)}
@@ -218,7 +212,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     padding: 12,
   },
-  metricIcon: { fontSize: 16, marginBottom: 4 },
   metricVal: {
     fontFamily: typography.fontMono,
     fontSize: 22,
@@ -246,6 +239,5 @@ const styles = StyleSheet.create({
   },
 
   emptyState: { padding: 28, alignItems: 'center' },
-  emptyIcon: { fontSize: 28, marginBottom: 6 },
   emptyText: { fontFamily: typography.fontSans, fontSize: 12, color: colors.textMuted },
 });

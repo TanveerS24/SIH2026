@@ -66,7 +66,6 @@ export default function AccessRequestsScreen() {
       <Panel title="REQUESTS">
         {requests.length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>🔐</Text>
             <Text style={styles.emptyText}>No access requests found.</Text>
           </View>
         ) : requests.map((r) => {

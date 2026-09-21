@@ -149,7 +149,6 @@ export default function CasesRegisterScreen() {
       <View style={styles.list}>
         {filteredCases.length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>📁</Text>
             <Text style={styles.emptyText}>
               {cases.length === 0 ? 'No cases registered yet.' : 'No results match your search.'}
             </Text>
@@ -189,8 +188,8 @@ export default function CasesRegisterScreen() {
                 </View>
                 <Text style={styles.caseTitle} numberOfLines={1}>{c.title}</Text>
                 <View style={styles.caseBadges}>
-                  <View style={styles.badge}><Text style={styles.badgeText}>📂 {c.documentCount}</Text></View>
-                  <View style={styles.badge}><Text style={styles.badgeText}>🔗 {c.custodyCount}</Text></View>
+                  <View style={styles.badge}><Text style={styles.badgeText}>DOCS: {c.documentCount}</Text></View>
+                  <View style={styles.badge}><Text style={styles.badgeText}>CHAIN: {c.custodyCount}</Text></View>
                   <Text style={styles.caseJurisdiction} numberOfLines={1}>{c.jurisdiction}</Text>
                 </View>
               </View>
@@ -219,7 +218,7 @@ export default function CasesRegisterScreen() {
                 onPress={() => setCreateMode('upload')}
               >
                 <Text style={[styles.modeTabText, createMode === 'upload' && styles.modeTabTextActive]}>
-                  📎 UPLOAD FIR / DOCUMENT
+                  UPLOAD FIR / DOCUMENT
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -227,7 +226,7 @@ export default function CasesRegisterScreen() {
                 onPress={() => setCreateMode('manual')}
               >
                 <Text style={[styles.modeTabText, createMode === 'manual' && styles.modeTabTextActive]}>
-                  ✏️ MANUAL ENTRY
+                  MANUAL ENTRY
                 </Text>
               </TouchableOpacity>
             </View>
@@ -248,9 +247,7 @@ export default function CasesRegisterScreen() {
                   >
                     {uploadedFile ? (
                       <View style={styles.filePreview}>
-                        <Text style={styles.fileIcon}>
-                          {uploadedFile.type.includes('image') ? '🖼️' : '📄'}
-                        </Text>
+                        <Text style={styles.fileIcon}>[FILE]</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.fileName} numberOfLines={1}>{uploadedFile.name}</Text>
                           <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB • SHA-256 will be computed on ingest</Text>
@@ -261,7 +258,6 @@ export default function CasesRegisterScreen() {
                       </View>
                     ) : (
                       <View style={styles.dropZoneInner}>
-                        <Text style={styles.dropZoneIcon}>📂</Text>
                         <Text style={styles.dropZoneTitle}>Select FIR, charge sheet, or evidence image</Text>
                         <Text style={styles.dropZoneHint}>PDF, JPG, PNG — will be hashed & anchored in ledger</Text>
                       </View>
@@ -291,7 +287,7 @@ export default function CasesRegisterScreen() {
                   {!uploadedFile && (
                     <View style={styles.uploadNote}>
                       <Text style={styles.uploadNoteText}>
-                        🔒 Uploading an official document auto-extracts metadata and reduces manual entry.
+                        Uploading an official document auto-extracts metadata and reduces manual entry.
                         BNS sections detected by OCR will be anchored immutably.
                       </Text>
                     </View>
@@ -548,7 +544,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   dropZoneInner: { alignItems: 'center' },
-  dropZoneIcon: { fontSize: 32, marginBottom: 8 },
   dropZoneTitle: {
     fontFamily: typography.fontSans,
     fontSize: 13,
@@ -569,7 +564,16 @@ const styles = StyleSheet.create({
     gap: 10,
     width: '100%',
   },
-  fileIcon: { fontSize: 24 },
+  fileIcon: {
+    fontSize: 11,
+    fontFamily: typography.fontMono,
+    fontWeight: '700',
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 3,
+  },
   fileName: {
     fontFamily: typography.fontSans,
     fontSize: 12,

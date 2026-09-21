@@ -7,8 +7,8 @@ import { api } from '../../services/api';
 
 export default function SearchScreen() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('repeated incidents near Pondy Bazaar');
-  const [activeQuery, setActiveQuery] = useState('repeated incidents near Pondy Bazaar');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeQuery, setActiveQuery] = useState('');
 
   const { data: searchResults, isLoading } = useQuery({
     queryKey: ['search', activeQuery],
@@ -21,10 +21,10 @@ export default function SearchScreen() {
   };
 
   const sampleQueries = [
-    'repeated incidents near Pondy Bazaar',
-    'cyber stalking transcripts',
-    'BNS 64 forensic report',
-    'Usman Road junction',
+    'cyber stalking',
+    'witness deposition',
+    'forensic report',
+    'seizure memo',
   ];
 
   return (

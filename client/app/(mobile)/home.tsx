@@ -33,7 +33,7 @@ export default function MobileHomeScreen() {
         onPress={() => router.push('/(mobile)/new-record/capture')}
         style={styles.captureBtn}
       >
-        <Text style={styles.captureBtnIcon}>📷</Text>
+        <Text style={styles.captureBtnBadge}>[RECORD]</Text>
         <View style={{ flex: 1 }}>
           <Text style={styles.captureBtnTitle}>CAPTURE EVIDENCE</Text>
           <Text style={styles.captureBtnSub}>Photo • Witness statement • Seizure memo</Text>
@@ -150,7 +150,16 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  captureBtnIcon: { fontSize: 24 },
+  captureBtnBadge: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
   captureBtnTitle: {
     fontFamily: typography.fontSans,
     fontSize: 14,
