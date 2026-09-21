@@ -58,3 +58,5 @@ output/
 # Test Coverage
 coverage/
 .nyc_output/
+
+Training_Data/
