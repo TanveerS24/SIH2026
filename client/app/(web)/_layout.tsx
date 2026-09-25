@@ -11,13 +11,13 @@ import {
 import { Slot, useRouter, usePathname } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, typography, OfficialSeal } from '@pramaan/ui';
-import { useAuthStore, DEMO_ACCOUNTS } from '../../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 
 export default function WebLayout() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout, switchDemoRole } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isCompact = width < 1120;
@@ -169,28 +169,7 @@ export default function WebLayout() {
           </TouchableOpacity>
         </View>
 
-        {/* Desktop Role Preset Switcher in Header (Only when wide) */}
-        {!isCompact && (
-          <View style={styles.roleSwitcherBar}>
-            <Text style={styles.switcherLabel}>ACTIVE CADRE:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
-              {DEMO_ACCOUNTS.map((acc) => {
-                const isCurrent = user?.role === acc.role;
-                return (
-                  <TouchableOpacity
-                    key={acc.role}
-                    onPress={() => switchDemoRole(acc.role)}
-                    style={[styles.rolePill, isCurrent && styles.rolePillActive]}
-                  >
-                    <Text style={[styles.rolePillText, isCurrent && styles.rolePillTextActive]}>
-                      {acc.role.replace(/_/g, ' ')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
+
 
         {/* User Badge & Actions */}
         {isMobile ? (
@@ -250,28 +229,7 @@ export default function WebLayout() {
         )}
       </View>
 
-      {/* Sub-header: Role Switcher Bar for Mobile and Compact viewports */}
-      {isCompact && (
-        <View style={styles.mobileRoleBar}>
-          <Text style={styles.mobileRoleLabel}>CADRE:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rolePillsScroll}>
-            {DEMO_ACCOUNTS.map((acc) => {
-              const isCurrent = user?.role === acc.role;
-              return (
-                <TouchableOpacity
-                  key={acc.role}
-                  onPress={() => switchDemoRole(acc.role)}
-                  style={[styles.rolePill, isCurrent && styles.rolePillActive]}
-                >
-                  <Text style={[styles.rolePillText, isCurrent && styles.rolePillTextActive]}>
-                    {acc.role.replace(/_/g, ' ')}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
+
 
       {/* Main Area: Sidebar + Content */}
       <View style={styles.body}>
@@ -378,64 +336,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 1,
   },
-  roleSwitcherBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    flex: 1,
-    maxWidth: 580,
-  },
-  mobileRoleBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  mobileRoleLabel: {
-    fontFamily: typography.fontSans,
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.textMuted,
-    marginRight: 8,
-    letterSpacing: 0.5,
-  },
-  switcherLabel: {
-    fontFamily: typography.fontSans,
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textMuted,
-    marginRight: 8,
-    letterSpacing: 0.5,
-  },
-  rolePillsScroll: {
-    flexDirection: 'row',
-  },
-  rolePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    marginRight: 6,
-  },
-  rolePillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  rolePillText: {
-    fontFamily: typography.fontSans,
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-  rolePillTextActive: {
-    color: colors.textInverse,
-  },
+
   mobileActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',

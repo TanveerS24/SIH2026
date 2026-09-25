@@ -7,7 +7,7 @@ import { useSyncStore } from '../../stores/syncStore';
 
 export default function MobileHomeScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { queue, isOffline } = useSyncStore();
 
   const pendingCount = queue.filter((q) => q.status !== 'SYNCED').length;
@@ -89,12 +89,26 @@ export default function MobileHomeScreen() {
           ))}
         </Panel>
       )}
+
+      {/* Session Sign-Out */}
+      <View style={styles.logoutSection}>
+        <Button
+          title="LOGOUT FROM FIELD SESSION"
+          onPress={logout}
+          variant="secondary"
+          size="md"
+        />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 14 },
+  logoutSection: {
+    marginTop: 20,
+    marginBottom: 24,
+  },
 
   officerCard: {
     backgroundColor: colors.surface,

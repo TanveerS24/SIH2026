@@ -47,9 +47,13 @@ function RootNavigator() {
     }
   }, [isAuthenticated, isLoading, segments, user]);
 
+  const safeTop = Platform.OS === 'android'
+    ? Math.max(StatusBar.currentHeight ?? 0, insets.top, 28)
+    : (Platform.OS === 'ios' ? Math.max(insets.top, 44) : 0);
+
   return (
-    <View style={[styles.rootContainer, { paddingTop: Platform.OS !== 'web' ? insets.top : 0 }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <View style={[styles.rootContainer, { paddingTop: safeTop }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} translucent={false} />
       {/* Official Institutional Banner */}
       <View style={styles.disclaimerBanner}>
         <Text style={styles.disclaimerText} numberOfLines={1}>

@@ -69,7 +69,7 @@ export default function AnalyticsScreen() {
           <DataTable
             columns={stateColumns}
             data={stats.states}
-            keyExtractor={(item) => item.stateCode}
+            keyExtractor={(item, index) => `${item.stateCode || 'st'}-${item.stateName || ''}-${index}`}
           />
         ) : (
           <View style={styles.emptyWrap}>

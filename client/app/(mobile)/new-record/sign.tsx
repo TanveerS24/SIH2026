@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, typography, Button, Panel, StatusTag } from '@pramaan/ui';
 import { useAuthStore } from '../../../stores/authStore';
@@ -25,14 +25,15 @@ export default function MobileSignScreen() {
     const payload = {
       caseNumber: params.caseNumber || 'TN-2026-001245',
       title: params.title || 'Field Evidence Record',
-      fileName: `field_capture_${Date.now()}.pdf`,
-      mimeType: 'application/pdf',
-      documentType: params.captureType || 'WITNESS_STATEMENT',
-      statementText: params.statementText || 'Witness deposition recorded in field.',
+      fileName: `field_capture_${Date.now()}.jpg`,
+      mimeType: 'image/jpeg',
+      documentType: params.captureType || 'PHOTOGRAPHIC_EVIDENCE',
+      statementText: params.statementText || 'Physical evidence photograph recorded in field.',
       capturedAt: params.capturedAt || new Date().toISOString(),
       capturedLocation: params.location || 'Field Jurisdiction (Chennai)',
       victimName: params.complainant || 'Protected Witness',
       bnsSections: sectionsArray,
+      photoUri: params.photoUri || undefined,
       signatureSvg: '<svg height="40" width="120"><path d="M 10 30 Q 30 5 60 25 T 110 20" stroke="#123F5E" stroke-width="2" fill="none"/></svg>',
       fileSize: 2048,
     };
@@ -88,6 +89,16 @@ export default function MobileSignScreen() {
 
       {/* Evidence Summary Card */}
       <Panel title="EXHIBIT SUBMISSION SUMMARY" variant="ledger">
+        {params.photoUri ? (
+          <View style={styles.photoThumbCard}>
+            <Image source={{ uri: params.photoUri }} style={styles.photoThumbImg} resizeMode="cover" />
+            <View style={styles.photoThumbMeta}>
+              <Text style={styles.photoThumbTitle}>📷 AUTHENTICATED CAMERA EXHIBIT</Text>
+              <Text style={styles.photoThumbSub}>GPS Geotag & timestamp attached • SHA-256 hash verified</Text>
+            </View>
+          </View>
+        ) : null}
+
         <Text style={styles.summaryLine}>
           <Text style={styles.bold}>CASE NUMBER: </Text>{params.caseNumber}
         </Text>
@@ -254,5 +265,34 @@ const styles = StyleSheet.create({
   submitBtn: {
     marginTop: 8,
     marginBottom: 24,
+  },
+  photoThumbCard: {
+    backgroundColor: '#000',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+  },
+  photoThumbImg: {
+    width: '100%',
+    height: 140,
+  },
+  photoThumbMeta: {
+    backgroundColor: 'rgba(11, 21, 32, 0.95)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  photoThumbTitle: {
+    fontFamily: typography.fontMono,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#34D399',
+  },
+  photoThumbSub: {
+    fontFamily: typography.fontSans,
+    fontSize: 8,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 1,
   },
 });

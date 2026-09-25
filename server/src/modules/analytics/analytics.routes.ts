@@ -17,16 +17,22 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       _count: { id: true },
     });
 
-    const states = jurisdictionGroups.map((g) => ({
-      stateName: g.jurisdiction,
-      stateCode: g.jurisdiction.substring(0, 2).toUpperCase(),
-      totalRegistered: g._count.id,
-      underInvestigation: underInvestigationCount,
-      chargeSheetsFiled: filedCasesCount,
-      convictionRatePercent: totalCasesCount > 0 ? Number(((filedCasesCount / totalCasesCount) * 100).toFixed(1)) : 0,
-      avgDaysToChargeSheet: 0,
-      forensicTurnaroundDays: 0,
-    }));
+    const states = jurisdictionGroups.map((g, idx) => {
+      const words = g.jurisdiction.trim().split(/\s+/);
+      const code = words.length > 1
+        ? words.map((w: string) => w[0]).join('').toUpperCase()
+        : g.jurisdiction.slice(0, 3).toUpperCase();
+      return {
+        stateName: g.jurisdiction,
+        stateCode: code || `J${idx + 1}`,
+        totalRegistered: g._count.id,
+        underInvestigation: underInvestigationCount,
+        chargeSheetsFiled: filedCasesCount,
+        convictionRatePercent: totalCasesCount > 0 ? Number(((filedCasesCount / totalCasesCount) * 100).toFixed(1)) : 0,
+        avgDaysToChargeSheet: 0,
+        forensicTurnaroundDays: 0,
+      };
+    });
 
     const chargeSheetsFiledRate = totalCasesCount > 0
       ? Number(((filedCasesCount / totalCasesCount) * 100).toFixed(1))

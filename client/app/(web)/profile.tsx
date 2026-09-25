@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, updateProfile, isLoading, error, clearError } = useAuthStore();
+  const { user, updateProfile, isLoading, error, clearError, logout } = useAuthStore();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -244,6 +244,21 @@ export default function ProfileScreen() {
         </View>
       </Panel>
 
+      {/* Session Management */}
+      <Panel title="SESSION GOVERNANCE" variant="default">
+        <View style={styles.logoutPanel}>
+          <Text style={styles.logoutDesc}>
+            Terminate the active cryptographic session and release local access tokens.
+          </Text>
+          <Button
+            title="LOGOUT FROM PRAMAAN"
+            onPress={logout}
+            variant="secondary"
+            size="md"
+          />
+        </View>
+      </Panel>
+
     </ScrollView>
   );
 }
@@ -252,6 +267,15 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     maxWidth: '100%',
+  },
+  logoutPanel: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  logoutDesc: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: colors.textMuted,
   },
   containerMobile: {
     padding: 12,

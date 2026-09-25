@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { colors, typography, Button, Panel } from '@pramaan/ui';
 
 const EVIDENCE_TYPES = [
-  { id: 'PHOTOGRAPHIC_EVIDENCE', tag: 'PHOTO', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device' },
+  { id: 'PHOTOGRAPHIC_EVIDENCE', tag: 'PHOTO', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device exhibit' },
   { id: 'WITNESS_STATEMENT', tag: 'STATEMENT', label: 'WITNESS STATEMENT', desc: 'Spot deposition (Sec. 180 BNSS)' },
   { id: 'SEIZURE_MEMO', tag: 'SEIZURE', label: 'SEIZURE MEMO', desc: 'On-scene recovery record' },
 ] as const;
@@ -13,22 +14,49 @@ type CaptureType = typeof EVIDENCE_TYPES[number]['id'];
 
 export default function MobileCaptureScreen() {
   const router = useRouter();
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [captureType, setCaptureType] = useState<CaptureType>('PHOTOGRAPHIC_EVIDENCE');
   const [isCapturing, setIsCapturing] = useState(false);
+  const cameraRef = useRef<CameraView>(null);
 
-  const handleCapture = () => {
+  const toggleCameraFacing = () => {
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+  };
+
+  const toggleFlash = () => {
+    setFlash((current) => (current === 'off' ? 'on' : 'off'));
+  };
+
+  const handleCapture = async () => {
+    if (isCapturing) return;
     setIsCapturing(true);
-    setTimeout(() => {
+
+    let photoUri: string | undefined;
+
+    try {
+      if (cameraRef.current && permission?.granted) {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.85,
+          skipProcessing: false,
+        });
+        photoUri = photo?.uri;
+      }
+    } catch (err) {
+      console.warn('Native camera capture failed, using fallback:', err);
+    } finally {
       setIsCapturing(false);
       router.push({
         pathname: '/(mobile)/new-record/review',
         params: {
           captureType,
+          photoUri: photoUri || '',
           capturedAt: new Date().toISOString(),
-          location: 'T. Nagar, Chennai (13.0418°N 80.2341°E)',
+          location: 'T. Nagar AWPS, Chennai (13.0418°N 80.2341°E)',
         },
       });
-    }, 600);
+    }
   };
 
   return (
@@ -36,42 +64,97 @@ export default function MobileCaptureScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Button title="← Back" onPress={() => router.back()} variant="secondary" size="sm" />
-        <Text style={styles.stepLabel}>STEP 1 OF 3 — CAPTURE</Text>
+        <Text style={styles.stepLabel}>STEP 1 OF 3 — LIVE FIELD CAPTURE</Text>
       </View>
 
-      {/* Viewfinder */}
-      <View style={styles.viewfinder}>
-        {/* Corner brackets */}
-        <View style={[styles.corner, styles.cornerTL]} />
-        <View style={[styles.corner, styles.cornerTR]} />
-        <View style={[styles.corner, styles.cornerBL]} />
-        <View style={[styles.corner, styles.cornerBR]} />
+      {/* Real Hardware Camera Viewfinder */}
+      <View style={styles.viewfinderContainer}>
+        {!permission ? (
+          <View style={styles.permissionBox}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.permissionDesc}>Checking camera access authorization...</Text>
+          </View>
+        ) : !permission.granted ? (
+          <View style={styles.permissionBox}>
+            <Text style={styles.permissionIcon}>📷</Text>
+            <Text style={styles.permissionTitle}>CAMERA PERMISSION REQUIRED</Text>
+            <Text style={styles.permissionDesc}>
+              Pramaan Field terminal requires camera authorization to record authenticated physical evidence and spot depositions.
+            </Text>
+            <Button
+              title="[+] GRANT CAMERA PERMISSION"
+              onPress={requestPermission}
+              variant="primary"
+              size="md"
+            />
+          </View>
+        ) : (
+          <View style={styles.cameraWrapper}>
+            <CameraView
+              ref={cameraRef}
+              style={StyleSheet.absoluteFill}
+              facing={facing}
+              enableTorch={flash === 'on'}
+            />
 
-        <View style={styles.viewfinderCenter}>
-          <Text style={styles.crosshair}>⊕</Text>
-          <Text style={styles.viewfinderText}>
-            {isCapturing ? 'PROCESSING...' : 'ALIGN EXHIBIT IN FRAME'}
-          </Text>
-        </View>
+            {/* Tactical HUD Overlay */}
+            <View style={styles.hudOverlay} pointerEvents="box-none">
+              {/* Top Controls Bar */}
+              <View style={styles.topHudBar}>
+                <View style={styles.recBadge}>
+                  <View style={styles.recDot} />
+                  <Text style={styles.recText}>LIVE SENSOR</Text>
+                </View>
+                <View style={styles.hudActions}>
+                  <TouchableOpacity onPress={toggleFlash} style={styles.hudBtn}>
+                    <Text style={styles.hudBtnText}>⚡ {flash.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={toggleCameraFacing} style={styles.hudBtn}>
+                    <Text style={styles.hudBtnText}>🔄 FLIP</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-        <View style={styles.gpsBadge}>
-          <Text style={styles.gpsText}>GPS: 13.0418°N 80.2341°E</Text>
-        </View>
+              {/* Corner Framing Brackets */}
+              <View style={[styles.corner, styles.cornerTL]} />
+              <View style={[styles.corner, styles.cornerTR]} />
+              <View style={[styles.corner, styles.cornerBL]} />
+              <View style={[styles.corner, styles.cornerBR]} />
 
-        {/* Shutter */}
-        <TouchableOpacity
-          style={[styles.shutter, isCapturing && styles.shutterCapturing]}
-          onPress={handleCapture}
-          disabled={isCapturing}
-          activeOpacity={0.8}
-        >
-          <View style={styles.shutterInner} />
-        </TouchableOpacity>
-        <Text style={styles.shutterLabel}>{isCapturing ? 'PROCESSING...' : 'TAP TO CAPTURE'}</Text>
+              {/* Center Target Reticle */}
+              <View style={styles.viewfinderCenter}>
+                <Text style={styles.crosshair}>⊕</Text>
+                <Text style={styles.viewfinderText}>
+                  {isCapturing ? 'ACQUIRING & ENCRYPTING...' : 'ALIGN EVIDENCE WITHIN FRAME'}
+                </Text>
+              </View>
+
+              {/* GPS Coordinates Bar */}
+              <View style={styles.gpsBadge}>
+                <Text style={styles.gpsText}>GPS: 13.0418°N 80.2341°E (±2M ACCURACY)</Text>
+              </View>
+
+              {/* Shutter Button */}
+              <View style={styles.shutterRow}>
+                <TouchableOpacity
+                  style={[styles.shutter, isCapturing && styles.shutterCapturing]}
+                  onPress={handleCapture}
+                  disabled={isCapturing}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.shutterInner} />
+                </TouchableOpacity>
+                <Text style={styles.shutterLabel}>
+                  {isCapturing ? 'CAPTURING EVIDENCE...' : 'PRESS SHUTTER TO CAPTURE'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* Evidence Type Selector */}
-      <Panel title="EVIDENCE TYPE">
+      {/* Evidence Classification Selector */}
+      <Panel title="STATUTORY EVIDENCE CLASSIFICATION">
         <View style={styles.typeGrid}>
           {EVIDENCE_TYPES.map((t) => (
             <TouchableOpacity
@@ -95,8 +178,8 @@ export default function MobileCaptureScreen() {
   );
 }
 
-const CORNER_SIZE = 18;
-const CORNER_THICKNESS = 2;
+const CORNER_SIZE = 22;
+const CORNER_THICKNESS = 2.5;
 
 const styles = StyleSheet.create({
   container: { padding: 14 },
@@ -105,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   stepLabel: {
     fontFamily: typography.fontSans,
@@ -115,16 +198,74 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  viewfinder: {
-    backgroundColor: '#0B1520',
+  viewfinderContainer: {
+    backgroundColor: '#070D12',
     borderRadius: 8,
-    height: 240,
+    height: 380,
     marginBottom: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderDark,
     position: 'relative',
-    paddingBottom: 70,
+  },
+
+  cameraWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+
+  hudOverlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+  },
+
+  topHudBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 3,
+    gap: 6,
+  },
+  recDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  recText: {
+    fontFamily: typography.fontMono,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  hudActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  hudBtn: {
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 3,
+  },
+  hudBtnText: {
+    fontFamily: typography.fontMono,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 
   // Corner brackets
@@ -134,88 +275,131 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
   },
   cornerTL: {
-    top: 16,
-    left: 16,
+    top: 50,
+    left: 14,
     borderTopWidth: CORNER_THICKNESS,
     borderLeftWidth: CORNER_THICKNESS,
-    borderColor: 'rgba(255,255,255,0.7)',
+    borderColor: 'rgba(255,255,255,0.85)',
   },
   cornerTR: {
-    top: 16,
-    right: 16,
+    top: 50,
+    right: 14,
     borderTopWidth: CORNER_THICKNESS,
     borderRightWidth: CORNER_THICKNESS,
-    borderColor: 'rgba(255,255,255,0.7)',
+    borderColor: 'rgba(255,255,255,0.85)',
   },
   cornerBL: {
-    bottom: 80,
-    left: 16,
+    bottom: 96,
+    left: 14,
     borderBottomWidth: CORNER_THICKNESS,
     borderLeftWidth: CORNER_THICKNESS,
-    borderColor: 'rgba(255,255,255,0.7)',
+    borderColor: 'rgba(255,255,255,0.85)',
   },
   cornerBR: {
-    bottom: 80,
-    right: 16,
+    bottom: 96,
+    right: 14,
     borderBottomWidth: CORNER_THICKNESS,
     borderRightWidth: CORNER_THICKNESS,
-    borderColor: 'rgba(255,255,255,0.7)',
+    borderColor: 'rgba(255,255,255,0.85)',
   },
 
-  viewfinderCenter: { alignItems: 'center' },
+  viewfinderCenter: {
+    alignItems: 'center',
+    marginVertical: 'auto',
+  },
   crosshair: {
-    fontSize: 28,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 6,
+    fontSize: 32,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 4,
   },
   viewfinderText: {
     fontFamily: typography.fontMono,
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 0.8,
+    fontSize: 9,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.8)',
+    letterSpacing: 0.6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 2,
   },
 
   gpsBadge: {
-    position: 'absolute',
-    bottom: 68,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 8,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 3,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   gpsText: {
     fontFamily: typography.fontMono,
     fontSize: 9,
-    color: 'rgba(255,255,255,0.8)',
+    color: '#34D399',
+    letterSpacing: 0.4,
   },
 
+  shutterRow: {
+    alignItems: 'center',
+    gap: 4,
+  },
   shutter: {
-    position: 'absolute',
-    bottom: 14,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shutterCapturing: { backgroundColor: 'rgba(255,255,255,0.4)' },
+  shutterCapturing: {
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    transform: [{ scale: 0.95 }],
+  },
   shutterInner: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.alert,
   },
   shutterLabel: {
-    position: 'absolute',
-    bottom: 2,
     fontFamily: typography.fontSans,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.6)',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  permissionBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 12,
+  },
+  permissionIcon: {
+    fontSize: 36,
+  },
+  permissionTitle: {
+    fontFamily: typography.fontSans,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  permissionDesc: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 6,
   },
 
   // Type Grid

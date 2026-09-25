@@ -55,14 +55,16 @@ export function DataTable<T>({
           <Text style={styles.emptyText}>{emptyMessage}</Text>
         </View>
       ) : (
-        data.map((item, index) => (
-          <View
-            key={keyExtractor(item, index)}
-            style={[
-              styles.dataRow,
-              index % 2 === 1 && styles.alternateRow,
-            ]}
-          >
+        data.map((item, index) => {
+          const rawKey = keyExtractor ? keyExtractor(item, index) : index;
+          return (
+            <View
+              key={`${rawKey}-${index}`}
+              style={[
+                styles.dataRow,
+                index % 2 === 1 && styles.alternateRow,
+              ]}
+            >
             {columns.map((col) => (
               <View
                 key={col.key}
@@ -83,8 +85,9 @@ export function DataTable<T>({
                 )}
               </View>
             ))}
-          </View>
-        ))
+            </View>
+          );
+        })
       )}
     </View>
     </ScrollView>
