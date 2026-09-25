@@ -102,12 +102,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
     letterSpacing: 0.6,
+    flexShrink: 1,
   },
   statusPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 2,
     borderWidth: 1,
+    flexShrink: 1,
   },
   statusPillReady: {
     backgroundColor: colors.verifiedLight,

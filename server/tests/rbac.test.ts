@@ -144,6 +144,6 @@ describe('Pramaan Security Suite: RBAC Enforcement', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.states).toBeDefined();
-    expect(body.disclaimer).toContain('DEMONSTRATION DATA');
+    expect(body.disclaimer).toContain('OFFICIAL SYSTEM TELEMETRY');
   });
 });

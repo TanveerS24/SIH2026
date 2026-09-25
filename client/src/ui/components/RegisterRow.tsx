@@ -27,6 +27,8 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
   onPress,
   style,
 }) => {
+  const subLines = subtitle ? subtitle.split(' • ').map((s) => s.trim()).filter(Boolean) : [];
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -36,13 +38,29 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
     >
       <View style={styles.leftBorder} />
       <View style={styles.mainContent}>
+        {/* Top Header: Code and Date on left, Status box on FAR RIGHT */}
         <View style={styles.headerLine}>
-          <Text style={styles.codeText}>{primaryCode}</Text>
-          <StatusTag label={statusLabel} variant={statusVariant} size="sm" />
+          <View style={styles.codeAndDateRow}>
+            <Text style={styles.codeText}>{primaryCode}</Text>
+            {date && <Text style={styles.dateInline}>• {date}</Text>}
+          </View>
+          <View style={styles.statusBoxWrap}>
+            <StatusTag label={statusLabel} variant={statusVariant} size="sm" />
+          </View>
         </View>
 
         <Text style={styles.titleText}>{title}</Text>
-        {subtitle && <Text style={styles.subtitleText}>{subtitle}</Text>}
+
+        {/* Content below title split into 2 lines */}
+        {subLines.length > 1 ? (
+          <View style={styles.subLinesWrap}>
+            {subLines.map((line, idx) => (
+              <Text key={idx} style={styles.subLine}>{line}</Text>
+            ))}
+          </View>
+        ) : subtitle ? (
+          <Text style={styles.subtitleText}>{subtitle}</Text>
+        ) : null}
 
         {metadataItems.length > 0 && (
           <View style={styles.metaRow}>
@@ -55,12 +73,6 @@ export const RegisterRow: React.FC<RegisterRowProps> = ({
           </View>
         )}
       </View>
-
-      {date && (
-        <View style={styles.dateCol}>
-          <Text style={styles.dateText}>{date}</Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
 };
@@ -93,8 +105,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
-    flexWrap: 'wrap',
+    width: '100%',
+  },
+  codeAndDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
+    flexWrap: 'wrap',
   },
   codeText: {
     fontFamily: typography.fontMono,
@@ -103,18 +120,37 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: 0.5,
   },
+  dateInline: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  statusBoxWrap: {
+    marginLeft: 'auto',
+  },
   titleText: {
     fontFamily: typography.fontSerif,
     fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  subLinesWrap: {
+    marginBottom: 6,
+    gap: 2,
+  },
+  subLine: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
   },
   subtitleText: {
     fontFamily: typography.fontSans,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textSecondary,
     marginBottom: 4,
+    lineHeight: 16,
   },
   metaRow: {
     flexDirection: 'row',
@@ -142,14 +178,5 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontSans,
     fontSize: 10,
     color: colors.textPrimary,
-  },
-  dateCol: {
-    marginLeft: 12,
-    alignItems: 'flex-end',
-  },
-  dateText: {
-    fontFamily: typography.fontMono,
-    fontSize: 11,
-    color: colors.textMuted,
   },
 });

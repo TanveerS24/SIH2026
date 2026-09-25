@@ -10,6 +10,7 @@ import {
   Input,
   WorkflowChecklist,
   StatusTag,
+  LoadingScreen,
 } from '@pramaan/ui';
 import { api } from '../../../../services/api';
 
@@ -57,7 +58,10 @@ export default function ChargeSheetWorkflowScreen() {
   if (isLoading || !workflow) {
     return (
       <View style={styles.centerWrap}>
-        <Text style={styles.loadingText}>Evaluating Statutory Workflow Prerequisites...</Text>
+        <LoadingScreen
+          message="Evaluating Statutory Workflow Prerequisites..."
+          subMessage="Inspecting Sections 173 CrPC / 193 BNSS filing criteria & forensic checks"
+        />
       </View>
     );
   }
@@ -210,15 +214,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     marginBottom: 16,
+    flexWrap: 'wrap',
   },
   headerTitles: {
     flex: 1,
+    minWidth: 200,
   },
   title: {
     fontFamily: typography.fontSerif,
     fontSize: 20,
     fontWeight: '800',
     color: colors.primary,
+    flexWrap: 'wrap',
   },
   subtitle: {
     fontFamily: typography.fontSans,

@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     flex: 1,
     flexShrink: 1,
+    ...({ wordBreak: 'break-all' } as any),
   },
   verifiedText: {
     color: colors.verifiedDark,

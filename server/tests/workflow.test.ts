@@ -30,10 +30,10 @@ describe('Pramaan Workflow Suite: Charge-Sheet Server Enforcement', () => {
       },
     });
 
-    const wfCase = await prisma.case.upsert({
-      where: { caseNumber: 'TEST-WF-CASE-001' },
-      update: {},
-      create: {
+    await prisma.case.deleteMany({ where: { caseNumber: 'TEST-WF-CASE-001' } });
+
+    const wfCase = await prisma.case.create({
+      data: {
         caseNumber: 'TEST-WF-CASE-001',
         title: 'State vs Test Accused (Workflow Filing Test)',
         description: 'Testing charge-sheet statutory gatekeeping.',

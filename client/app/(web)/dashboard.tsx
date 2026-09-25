@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { colors, typography, Panel, StatusTag, Button, RegisterRow } from '@pramaan/ui';
+import { colors, typography, Panel, StatusTag, Button, RegisterRow, LoadingScreen } from '@pramaan/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 
@@ -12,15 +12,26 @@ export default function DashboardScreen() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { data: cases = [] } = useQuery({
+  const { data: cases = [], isLoading: casesLoading } = useQuery({
     queryKey: ['cases'],
     queryFn: () => api.getCases(),
   });
 
-  const { data: analytics } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ['analytics-overview'],
     queryFn: () => api.getAnalytics(),
   });
+
+  if (casesLoading || analyticsLoading) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <LoadingScreen
+          message="Loading Dashboard & Evidence Overview..."
+          subMessage="Fetching active cases, conviction statistics, and ledger status"
+        />
+      </ScrollView>
+    );
+  }
 
   const role = user?.role;
   const isIO = role === 'INVESTIGATION_OFFICER';

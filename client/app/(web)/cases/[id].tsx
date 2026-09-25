@@ -13,9 +13,22 @@ import {
   HashDisplay,
   StatusTag,
   DataTable,
+  LoadingScreen,
 } from '@pramaan/ui';
 import { api } from '../../../services/api';
 import { useAuthStore } from '../../../stores/authStore';
+
+const DOC_TYPES = [
+  { value: 'FORENSIC_REPORT', label: 'Forensic Report' },
+  { value: 'FIR', label: 'FIR' },
+  { value: 'WITNESS_STATEMENT', label: 'Witness Statement' },
+  { value: 'VICTIM_STATEMENT', label: 'Victim Statement' },
+  { value: 'SEIZURE_MEMO', label: 'Seizure Memo' },
+  { value: 'PANCHNAMA', label: 'Panchnama' },
+  { value: 'PHOTOGRAPHIC_EVIDENCE', label: 'Photo Evidence' },
+  { value: 'CHARGE_SHEET', label: 'Charge Sheet' },
+  { value: 'MEDICAL_EXAM_REPORT', label: 'Medical Report' },
+];
 
 export default function CaseFileDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +40,7 @@ export default function CaseFileDetailScreen() {
   const [activeTab, setActiveTab] = useState<'documents' | 'custody' | 'workflow' | 'relationships'>('documents');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadMode, setUploadMode] = useState<'file' | 'manual'>('file');
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // File upload mode
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; base64: string; type: string } | null>(null);
@@ -64,8 +78,12 @@ export default function CaseFileDetailScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case', id] });
       queryClient.invalidateQueries({ queryKey: ['custody', id] });
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
       setShowUploadModal(false);
       resetUpload();
+    },
+    onError: (err: any) => {
+      setUploadError(err?.message || 'Failed to ingest exhibit document. Please check the file and try again.');
     },
   });
 
@@ -73,29 +91,74 @@ export default function CaseFileDetailScreen() {
     setUploadedFile(null);
     setDocTitle('');
     setDocContentText('');
+    setUploadError(null);
   };
 
-  const handleFileSelect = (e: any) => {
-    const file = e.target?.files?.[0];
+  const processSelectedFile = (file: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
-      const base64 = result.split(',')[1] || result;
-      setUploadedFile({ name: file.name, size: file.size, base64, type: file.type });
+      const base64 = result.includes(',') ? result.split(',')[1] : result;
+      setUploadedFile({
+        name: file.name,
+        size: file.size,
+        base64,
+        type: file.type || 'application/pdf',
+      });
+      setUploadError(null);
       if (!docTitle) setDocTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '));
     };
     reader.readAsDataURL(file);
   };
 
+  const triggerFilePicker = () => {
+    if (typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.jpg,.jpeg,.png,.webp,.txt';
+      input.onchange = (e: any) => {
+        const file = e.target?.files?.[0];
+        if (file) processSelectedFile(file);
+      };
+      input.click();
+    } else if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = (e: any) => {
+    const file = e.target?.files?.[0];
+    if (file) processSelectedFile(file);
+  };
+
+  const safeBase64 = (str: string): string => {
+    try {
+      return btoa(unescape(encodeURIComponent(str)));
+    } catch {
+      return '';
+    }
+  };
+
   const handleUpload = () => {
-    if (!docTitle) return;
-    if (uploadMode === 'file' && !uploadedFile) return;
+    setUploadError(null);
+    if (!docTitle.trim()) {
+      setUploadError('Please provide an Exhibit Title.');
+      return;
+    }
+    if (uploadMode === 'file' && !uploadedFile) {
+      setUploadError('Please select a file to ingest.');
+      return;
+    }
+    if (uploadMode === 'manual' && !docContentText.trim()) {
+      setUploadError('Please type or paste document content.');
+      return;
+    }
 
     const payload = uploadMode === 'file'
       ? {
           caseId: id,
-          title: docTitle,
+          title: docTitle.trim(),
           fileName: uploadedFile!.name,
           documentType: docType,
           mimeType: uploadedFile!.type || 'application/octet-stream',
@@ -103,11 +166,11 @@ export default function CaseFileDetailScreen() {
         }
       : {
           caseId: id,
-          title: docTitle,
-          fileName: `${docTitle.replace(/\s+/g, '_')}.txt`,
+          title: docTitle.trim(),
+          fileName: `${docTitle.trim().replace(/\s+/g, '_')}.txt`,
           documentType: docType,
           mimeType: 'text/plain',
-          fileBase64: btoa(docContentText),
+          fileBase64: safeBase64(docContentText),
         };
 
     uploadMutation.mutate(payload);
@@ -132,7 +195,10 @@ export default function CaseFileDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.centerWrap}>
-        <Text style={styles.loadingText}>Loading case file...</Text>
+        <LoadingScreen
+          message="Loading Case Record & Evidentiary Chain..."
+          subMessage="Fetching digital exhibits, hash manifests, and custody records"
+        />
       </View>
     );
   }
@@ -376,11 +442,17 @@ export default function CaseFileDetailScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
+              {uploadError && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorBannerText}>⚠️ {uploadError}</Text>
+                </View>
+              )}
+
               {uploadMode === 'file' ? (
                 <View>
                   <TouchableOpacity
                     style={[styles.dropZone, uploadedFile && styles.dropZoneUploaded]}
-                    onPress={() => Platform.OS === 'web' && (fileInputRef.current as HTMLInputElement)?.click()}
+                    onPress={triggerFilePicker}
                     activeOpacity={0.8}
                   >
                     {uploadedFile ? (
@@ -388,19 +460,29 @@ export default function CaseFileDetailScreen() {
                         <Text style={styles.fileIcon}>[FILE]</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.fileName} numberOfLines={1}>{uploadedFile.name}</Text>
-                          <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB</Text>
+                          <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB • Ready to anchor</Text>
                         </View>
-                        <TouchableOpacity onPress={() => setUploadedFile(null)} style={styles.removeFileBtn}>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            setUploadedFile(null);
+                          }}
+                          style={styles.removeFileBtn}
+                        >
                           <Text style={styles.removeFileText}>✕</Text>
                         </TouchableOpacity>
                       </View>
                     ) : (
                       <View style={styles.dropZoneInner}>
-                        <Text style={styles.dropZoneTitle}>Select file to ingest</Text>
-                        <Text style={styles.dropZoneHint}>PDF, JPG, PNG — SHA-256 anchored on upload</Text>
+                        <Text style={styles.dropZoneTitle}>Select evidence file to ingest</Text>
+                        <Text style={styles.dropZoneHint}>Click to browse • PDF, JPG, PNG, TXT</Text>
+                        <View style={styles.browsePill}>
+                          <Text style={styles.browsePillText}>BROWSE FILE</Text>
+                        </View>
                       </View>
                     )}
                   </TouchableOpacity>
+
                   {Platform.OS === 'web' && (
                     <input
                       ref={fileInputRef}
@@ -422,16 +504,43 @@ export default function CaseFileDetailScreen() {
                 />
               )}
 
-              <Input label="EXHIBIT TITLE" value={docTitle} onChangeText={setDocTitle} placeholder="e.g. FSL Cyber Examination Report" />
-              <Input label="DOCUMENT TYPE" value={docType} onChangeText={setDocType} />
+              <Input
+                label="EXHIBIT TITLE"
+                value={docTitle}
+                onChangeText={setDocTitle}
+                placeholder="e.g. FSL Cyber Examination Report"
+              />
+
+              {/* Document Type Selector Chips */}
+              <View style={styles.docTypeSection}>
+                <Text style={styles.docTypeLabel}>DOCUMENT TYPE</Text>
+                <View style={styles.docTypeChips}>
+                  {DOC_TYPES.map((t) => {
+                    const isSelected = docType === t.value;
+                    return (
+                      <TouchableOpacity
+                        key={t.value}
+                        style={[styles.typeChip, isSelected && styles.typeChipActive]}
+                        onPress={() => setDocType(t.value)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.typeChipText, isSelected && styles.typeChipTextActive]}>
+                          {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
 
               <View style={styles.modalActions}>
                 <Button title="CANCEL" onPress={() => { setShowUploadModal(false); resetUpload(); }} variant="secondary" />
                 <Button
-                  title={uploadMutation.isPending ? 'ANCHORING...' : 'UPLOAD & ANCHOR →'}
+                  title={uploadMutation.isPending ? 'ANCHORING IN LEDGER...' : 'UPLOAD & ANCHOR →'}
                   onPress={handleUpload}
                   loading={uploadMutation.isPending}
                   variant="primary"
+                  disabled={uploadMutation.isPending || !docTitle.trim() || (uploadMode === 'file' && !uploadedFile) || (uploadMode === 'manual' && !docContentText.trim())}
                 />
               </View>
             </ScrollView>
@@ -738,5 +847,73 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingTop: 12,
     paddingBottom: 4,
+  },
+  errorBanner: {
+    backgroundColor: colors.alertLight || '#FDF2F2',
+    borderColor: colors.alert || '#DC2626',
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 12,
+  },
+  errorBannerText: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    color: colors.alert || '#DC2626',
+    fontWeight: '600',
+  },
+  browsePill: {
+    marginTop: 8,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 4,
+  },
+  browsePillText: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  docTypeSection: {
+    marginBottom: 12,
+  },
+  docTypeLabel: {
+    fontFamily: typography.fontMono,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  docTypeChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  typeChip: {
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    borderRadius: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  typeChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  typeChipText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  typeChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

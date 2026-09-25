@@ -25,21 +25,24 @@ export type SensitivityLevel = z.infer<typeof SensitivityLevelEnum>;
 
 export const CreateCaseSchema = z.object({
   caseNumber: z.string().min(3),
-  title: z.string().min(5),
-  description: z.string().min(10),
+  title: z.string().min(3),
+  description: z.string().min(5),
   firNumber: z.string().optional(),
   firDate: z.string().datetime().optional(),
-  jurisdiction: z.string().min(2),
-  policeStation: z.string().min(2),
-  bnsSections: z.array(z.string()).min(1),
+  jurisdiction: z.string().min(2).default('State Cyber Crime Division'),
+  policeStation: z.string().min(2).default('Cyber Crime Police Station'),
+  bnsSections: z.array(z.string()).default(['BNS 318']),
   priority: CasePriorityEnum.default('HIGH'),
   sensitivity: SensitivityLevelEnum.default('HIGHLY_SENSITIVE'),
   incidentDate: z.string().datetime().optional(),
-  incidentLocation: z.string().min(3),
+  incidentLocation: z.string().min(2).default('Jurisdictional Police Station'),
   victimName: z.string().optional(),
   victimAge: z.number().optional(),
   suspects: z.array(z.string()).default([]),
   assignedOfficerId: z.string().optional(),
+  sourceDocumentBase64: z.string().optional(),
+  sourceDocumentType: z.string().optional(),
+  sourceDocumentName: z.string().optional(),
 });
 
 export type CreateCaseDto = z.infer<typeof CreateCaseSchema>;

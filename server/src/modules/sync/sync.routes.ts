@@ -111,12 +111,21 @@ export async function syncRoutes(fastify: FastifyInstance) {
           sha256Hash
         );
 
+        const resolveDocumentType = (val?: string): DocumentType => {
+          if (!val) return DocumentType.PHOTOGRAPHIC_EVIDENCE;
+          if (val === 'PHOTO_EXHIBIT' || val === 'PHOTO' || val === 'IMAGE') return DocumentType.PHOTOGRAPHIC_EVIDENCE;
+          if (val === 'STATEMENT') return DocumentType.WITNESS_STATEMENT;
+          if (val === 'SEIZURE') return DocumentType.SEIZURE_MEMO;
+          if (Object.values(DocumentType).includes(val as any)) return val as DocumentType;
+          return DocumentType.PHOTOGRAPHIC_EVIDENCE;
+        };
+
         // Insert Document Record
         const newDoc = await prisma.document.create({
           data: {
             id: docId,
             caseId: targetCase.id,
-            documentType: (payload.documentType as DocumentType) || DocumentType.PHOTOGRAPHIC_EVIDENCE,
+            documentType: resolveDocumentType(payload.documentType),
             title: payload.title || fileName,
             originalFileName: fileName,
             storageKey,

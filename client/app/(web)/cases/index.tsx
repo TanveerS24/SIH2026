@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { colors, typography, Panel, Button, Input, StatusTag } from '@pramaan/ui';
+import { colors, typography, Panel, Button, Input, StatusTag, LoadingScreen } from '@pramaan/ui';
 import { api } from '../../../services/api';
 import { useAuthStore } from '../../../stores/authStore';
 
@@ -25,6 +25,7 @@ export default function CasesRegisterScreen() {
   const [filterQuery, setFilterQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createMode, setCreateMode] = useState<CreateMode>('upload');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Upload mode state
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; base64: string; type: string } | null>(null);
@@ -34,10 +35,10 @@ export default function CasesRegisterScreen() {
   const [caseNumber, setCaseNumber] = useState(`TN-2026-${Math.floor(1000 + Math.random() * 9000)}`);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [jurisdiction, setJurisdiction] = useState(user?.jurisdiction || '');
-  const [policeStation, setPoliceStation] = useState(user?.department || '');
-  const [bnsSections, setBnsSections] = useState('');
-  const [incidentLocation, setIncidentLocation] = useState('');
+  const [jurisdiction, setJurisdiction] = useState(user?.jurisdiction || 'State Cyber Crime Division');
+  const [policeStation, setPoliceStation] = useState(user?.department || 'Cyber Crime Police Station');
+  const [bnsSections, setBnsSections] = useState('BNS 318, BNS 66');
+  const [incidentLocation, setIncidentLocation] = useState(user?.jurisdiction || 'Chennai Central Cyber Cell');
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ['cases'],
@@ -46,10 +47,16 @@ export default function CasesRegisterScreen() {
 
   const createMutation = useMutation({
     mutationFn: (payload: any) => api.createCase(payload),
-    onSuccess: () => {
+    onSuccess: (newCase: any) => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       setShowCreateModal(false);
       resetForm();
+      if (newCase?.id) {
+        router.push(`/(web)/cases/${newCase.id}` as any);
+      }
+    },
+    onError: (err: any) => {
+      setErrorMessage(err?.message || 'Failed to register case record. Please review fields and retry.');
     },
   });
 
@@ -58,35 +65,68 @@ export default function CasesRegisterScreen() {
     setUploadTitle('');
     setTitle('');
     setDescription('');
-    setBnsSections('');
-    setIncidentLocation('');
+    setBnsSections('BNS 318, BNS 66');
+    setIncidentLocation(user?.jurisdiction || 'Chennai Central Cyber Cell');
+    setCaseNumber(`TN-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+    setErrorMessage(null);
   };
 
-  const handleFileSelect = (e: any) => {
-    const file = e.target?.files?.[0];
+  const processSelectedFile = (file: File) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
-      const base64 = result.split(',')[1] || result;
-      setUploadedFile({ name: file.name, size: file.size, base64, type: file.type });
-      // Pre-fill title from filename
-      setUploadTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '));
+      const base64 = result.includes(',') ? result.split(',')[1] : result;
+      setUploadedFile({
+        name: file.name,
+        size: file.size,
+        base64,
+        type: file.type || 'application/pdf',
+      });
+      setErrorMessage(null);
+      if (!uploadTitle) {
+        setUploadTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '));
+      }
     };
     reader.readAsDataURL(file);
   };
 
+  const triggerFilePicker = () => {
+    if (typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.jpg,.jpeg,.png,.webp,.txt';
+      input.onchange = (e: any) => {
+        const file = e.target?.files?.[0];
+        if (file) processSelectedFile(file);
+      };
+      input.click();
+    } else if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = (e: any) => {
+    const file = e.target?.files?.[0];
+    if (file) processSelectedFile(file);
+  };
+
   const handleCreateCase = () => {
+    setErrorMessage(null);
     if (createMode === 'upload') {
-      if (!uploadedFile || !uploadTitle) return;
+      if (!uploadedFile) {
+        setErrorMessage('Please select an FIR or evidence document first.');
+        return;
+      }
+      const safeTitle = (uploadTitle.trim() || uploadedFile.name.replace(/\.[^/.]+$/, ''));
       createMutation.mutate({
-        caseNumber: `TN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: uploadTitle,
-        description: `Registered from uploaded document: ${uploadedFile.name}`,
-        jurisdiction: user?.jurisdiction || '',
-        policeStation: user?.department || '',
-        bnsSections: [],
-        incidentLocation: '',
+        caseNumber: caseNumber.trim() || `TN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        title: safeTitle.length >= 3 ? safeTitle : `Case: ${safeTitle}`,
+        description: `Registered from official FIR document: ${uploadedFile.name}`,
+        jurisdiction: jurisdiction.trim() || user?.jurisdiction || 'State Cyber Crime Division',
+        policeStation: policeStation.trim() || user?.department || 'Cyber Crime Police Station',
+        bnsSections: bnsSections ? bnsSections.split(',').map((s) => s.trim()).filter(Boolean) : ['BNS 318'],
+        incidentLocation: incidentLocation.trim() || 'Jurisdictional Police Station',
         priority: 'HIGH',
         sensitivity: 'HIGHLY_SENSITIVE',
         sourceDocumentBase64: uploadedFile.base64,
@@ -94,15 +134,19 @@ export default function CasesRegisterScreen() {
         sourceDocumentName: uploadedFile.name,
       });
     } else {
-      if (!title || !description) return;
+      if (!title.trim() || title.trim().length < 3) {
+        setErrorMessage('Title must be at least 3 characters.');
+        return;
+      }
+      const sections = bnsSections.split(',').map((s) => s.trim()).filter(Boolean);
       createMutation.mutate({
-        caseNumber,
-        title,
-        description,
-        jurisdiction,
-        policeStation,
-        bnsSections: bnsSections.split(',').map((s) => s.trim()).filter(Boolean),
-        incidentLocation,
+        caseNumber: caseNumber.trim() || `TN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        title: title.trim(),
+        description: description.trim() || `Official criminal investigation registered under ${caseNumber}`,
+        jurisdiction: jurisdiction.trim() || user?.jurisdiction || 'State Cyber Crime Division',
+        policeStation: policeStation.trim() || user?.department || 'Cyber Crime Police Station',
+        bnsSections: sections.length > 0 ? sections : ['BNS 318'],
+        incidentLocation: incidentLocation.trim() || 'Jurisdictional Police Station',
         priority: 'HIGH',
         sensitivity: 'HIGHLY_SENSITIVE',
       });
@@ -116,8 +160,19 @@ export default function CasesRegisterScreen() {
   );
 
   const canSubmit = createMode === 'upload'
-    ? !!uploadedFile && !!uploadTitle
-    : !!title && !!description;
+    ? !!uploadedFile && !!(uploadTitle.trim() || uploadedFile.name)
+    : title.trim().length >= 3;
+
+  if (isLoading) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <LoadingScreen
+          message="Loading Case Register Records..."
+          subMessage="Fetching digital custody case files from state registry"
+        />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -174,23 +229,30 @@ export default function CasesRegisterScreen() {
               ]} />
               <View style={styles.caseBody}>
                 <View style={styles.caseTopRow}>
-                  <Text style={styles.caseNum}>{c.caseNumber}</Text>
-                  <View style={styles.caseMeta}>
-                    <Text style={styles.caseDate}>{new Date(c.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
-                    <View style={[
-                      styles.statusPill,
-                      c.status === 'FILED' ? styles.pillFiled :
-                      c.status === 'CHARGE_SHEET_PREPARED' ? styles.pillGold : styles.pillBlue
-                    ]}>
-                      <Text style={styles.statusPillText}>{c.status.replace(/_/g, ' ')}</Text>
-                    </View>
+                  <View style={styles.caseNumAndDate}>
+                    <Text style={styles.caseNum}>{c.caseNumber}</Text>
+                    <Text style={styles.caseDate}>• {new Date(c.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</Text>
+                  </View>
+                  <View style={[
+                    styles.statusPill,
+                    c.status === 'FILED' ? styles.pillFiled :
+                    c.status === 'CHARGE_SHEET_PREPARED' ? styles.pillGold : styles.pillBlue
+                  ]}>
+                    <Text style={styles.statusPillText}>{c.status.replace(/_/g, ' ')}</Text>
                   </View>
                 </View>
+
                 <Text style={styles.caseTitle} numberOfLines={1}>{c.title}</Text>
+
+                {/* Content below title split into 2 lines */}
+                <View style={styles.caseSubLines}>
+                  <Text style={styles.caseSubLine}>{c.jurisdiction}</Text>
+                  {c.policeStation ? <Text style={styles.caseSubLine}>{c.policeStation}</Text> : null}
+                </View>
+
                 <View style={styles.caseBadges}>
                   <View style={styles.badge}><Text style={styles.badgeText}>DOCS: {c.documentCount}</Text></View>
                   <View style={styles.badge}><Text style={styles.badgeText}>CHAIN: {c.custodyCount}</Text></View>
-                  <Text style={styles.caseJurisdiction} numberOfLines={1}>{c.jurisdiction}</Text>
                 </View>
               </View>
               <Text style={styles.caseArrow}>›</Text>
@@ -232,17 +294,19 @@ export default function CasesRegisterScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
+              {errorMessage && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorBannerText}>⚠️ {errorMessage}</Text>
+                </View>
+              )}
+
               {createMode === 'upload' ? (
                 /* Upload Mode */
                 <View>
                   {/* File Drop Zone */}
                   <TouchableOpacity
                     style={[styles.dropZone, uploadedFile && styles.dropZoneUploaded]}
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        (fileInputRef.current as HTMLInputElement)?.click();
-                      }
-                    }}
+                    onPress={triggerFilePicker}
                     activeOpacity={0.8}
                   >
                     {uploadedFile ? (
@@ -250,26 +314,35 @@ export default function CasesRegisterScreen() {
                         <Text style={styles.fileIcon}>[FILE]</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.fileName} numberOfLines={1}>{uploadedFile.name}</Text>
-                          <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB • SHA-256 will be computed on ingest</Text>
+                          <Text style={styles.fileSize}>{(uploadedFile.size / 1024).toFixed(1)} KB • SHA-256 will be computed & anchored</Text>
                         </View>
-                        <TouchableOpacity onPress={() => setUploadedFile(null)} style={styles.removeFileBtn}>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            setUploadedFile(null);
+                          }}
+                          style={styles.removeFileBtn}
+                        >
                           <Text style={styles.removeFileText}>✕</Text>
                         </TouchableOpacity>
                       </View>
                     ) : (
                       <View style={styles.dropZoneInner}>
-                        <Text style={styles.dropZoneTitle}>Select FIR, charge sheet, or evidence image</Text>
-                        <Text style={styles.dropZoneHint}>PDF, JPG, PNG — will be hashed & anchored in ledger</Text>
+                        <Text style={styles.dropZoneTitle}>Select FIR, charge sheet, or evidence file</Text>
+                        <Text style={styles.dropZoneHint}>Click to browse or upload • PDF, JPG, PNG, TXT</Text>
+                        <View style={styles.browsePill}>
+                          <Text style={styles.browsePillText}>BROWSE FILE</Text>
+                        </View>
                       </View>
                     )}
                   </TouchableOpacity>
 
-                  {/* Hidden web file input */}
+                  {/* Hidden web file input fallback */}
                   {Platform.OS === 'web' && (
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp,.txt"
                       style={{ display: 'none' }}
                       onChange={handleFileSelect}
                     />
@@ -287,8 +360,7 @@ export default function CasesRegisterScreen() {
                   {!uploadedFile && (
                     <View style={styles.uploadNote}>
                       <Text style={styles.uploadNoteText}>
-                        Uploading an official document auto-extracts metadata and reduces manual entry.
-                        BNS sections detected by OCR will be anchored immutably.
+                        Uploading an official document auto-extracts metadata and anchors the evidence immutably in the blockchain ledger.
                       </Text>
                     </View>
                   )}
@@ -298,7 +370,7 @@ export default function CasesRegisterScreen() {
                 <View>
                   <Input label="CASE NUMBER" value={caseNumber} onChangeText={setCaseNumber} monospace />
                   <Input label="TITLE" value={title} onChangeText={setTitle} placeholder="State vs. Accused (Incident Name)" />
-                  <Input label="SYNOPSIS" value={description} onChangeText={setDescription} multiline numberOfLines={3} placeholder="Brief summary..." />
+                  <Input label="SYNOPSIS" value={description} onChangeText={setDescription} multiline numberOfLines={3} placeholder="Brief summary of allegations..." />
                   <View style={styles.twoCol}>
                     <View style={{ flex: 1 }}>
                       <Input label="JURISDICTION" value={jurisdiction} onChangeText={setJurisdiction} />
@@ -307,7 +379,7 @@ export default function CasesRegisterScreen() {
                       <Input label="POLICE STATION" value={policeStation} onChangeText={setPoliceStation} />
                     </View>
                   </View>
-                  <Input label="BNS SECTIONS (comma separated)" value={bnsSections} onChangeText={setBnsSections} placeholder="e.g. 66C, 66D" />
+                  <Input label="BNS SECTIONS (comma separated)" value={bnsSections} onChangeText={setBnsSections} placeholder="e.g. BNS 318, BNS 66" />
                   <Input label="INCIDENT LOCATION" value={incidentLocation} onChangeText={setIncidentLocation} />
                 </View>
               )}
@@ -315,11 +387,11 @@ export default function CasesRegisterScreen() {
               <View style={styles.modalActions}>
                 <Button title="CANCEL" onPress={() => { setShowCreateModal(false); resetForm(); }} variant="secondary" />
                 <Button
-                  title={createMutation.isPending ? 'REGISTERING...' : 'REGISTER & INITIALIZE LEDGER →'}
+                  title={createMutation.isPending ? 'REGISTERING & ANCHORING...' : 'REGISTER & INITIALIZE LEDGER →'}
                   onPress={handleCreateCase}
                   loading={createMutation.isPending}
                   variant="primary"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || createMutation.isPending}
                 />
               </View>
             </ScrollView>
@@ -382,7 +454,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  caseMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  caseNumAndDate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   caseDate: {
     fontFamily: typography.fontSans,
     fontSize: 10,
@@ -408,7 +485,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  caseSubLines: {
     marginBottom: 6,
+    gap: 2,
+  },
+  caseSubLine: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
   },
   caseBadges: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: {
@@ -423,12 +510,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontSans,
     fontSize: 10,
     color: colors.textSecondary,
-  },
-  caseJurisdiction: {
-    fontFamily: typography.fontSans,
-    fontSize: 10,
-    color: colors.textMuted,
-    flex: 1,
   },
   caseArrow: {
     fontSize: 20,
@@ -608,7 +689,7 @@ const styles = StyleSheet.create({
   },
 
   // Two Column
-  twoCol: { flexDirection: 'row', gap: 10 },
+  twoCol: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
 
   // Modal Actions
   modalActions: {
@@ -620,5 +701,36 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingTop: 14,
     paddingBottom: 6,
+    flexWrap: 'wrap',
+  },
+  errorBanner: {
+    backgroundColor: colors.alertLight || '#FDF2F2',
+    borderColor: colors.alert || '#DC2626',
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 14,
+  },
+  errorBannerText: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    color: colors.alert || '#DC2626',
+    fontWeight: '600',
+  },
+  browsePill: {
+    marginTop: 10,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 4,
+  },
+  browsePillText: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
 });

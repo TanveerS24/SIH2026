@@ -1,8 +1,14 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import crypto from 'crypto';
 import { prisma } from '../../config/prisma.js';
 import { auditService } from '../../services/audit.service.js';
+import { storageService } from '../../services/storage.service.js';
+import { malwareScannerService } from '../../services/malware.service.js';
+import { ledgerService } from '../../services/ledger.service.js';
+import { documentAIService } from '../../services/ai.service.js';
+import { ragService } from '../../services/rag.service.js';
 import { checkCaseAccess, requireRoles } from '../../plugins/rbac.plugin.js';
-import { Role, AuditAction, CaseStatus, CasePriority, SensitivityLevel } from '@prisma/client';
+import { Role, AuditAction, CaseStatus, CasePriority, SensitivityLevel, DocumentType, DocumentStatus, CustodyAction } from '@prisma/client';
 import { CreateCaseSchema } from '@pramaan/shared-types';
 
 export async function casesRoutes(fastify: FastifyInstance) {
@@ -219,6 +225,107 @@ export async function casesRoutes(fastify: FastifyInstance) {
           },
         },
       });
+
+      // If an initial FIR / source document was uploaded with case registration, auto-ingest and anchor
+      if (data.sourceDocumentBase64) {
+        try {
+          const rawBase64 = (data.sourceDocumentBase64.includes(',')
+            ? data.sourceDocumentBase64.split(',')[1]
+            : data.sourceDocumentBase64) || '';
+          const buffer = Buffer.from(rawBase64, 'base64');
+          const originalFileName = data.sourceDocumentName || 'FIR_registration_document.pdf';
+          const mimeType = data.sourceDocumentType || 'application/pdf';
+          const docId = `doc-${crypto.randomBytes(6).toString('hex')}`;
+          const storageKey = storageService.generateStorageKey(newCase.id, docId, originalFileName);
+
+          // Malware scan
+          const scanResult = await malwareScannerService.scanBuffer(buffer, originalFileName);
+          if (scanResult.isClean) {
+            const sha256Hash = crypto.createHash('sha256').update(buffer).digest('hex');
+            await storageService.uploadBuffer(buffer, storageKey, mimeType);
+            const extractedText = await documentAIService.extractText(buffer, mimeType, originalFileName);
+            const metadata = await documentAIService.extractMetadata(extractedText, originalFileName);
+
+            const ledgerResult = await ledgerService.recordEvent(
+              'DOCUMENT_INTEGRITY',
+              {
+                documentId: docId,
+                caseId: newCase.id,
+                caseNumber: newCase.caseNumber,
+                documentType: DocumentType.FIR,
+                originalFileName,
+                sha256Hash,
+                uploadedByBadge: user.badgeNumber,
+              },
+              sha256Hash
+            );
+
+            await prisma.document.create({
+              data: {
+                id: docId,
+                caseId: newCase.id,
+                documentType: DocumentType.FIR,
+                title: data.title || 'First Information Report (FIR)',
+                originalFileName,
+                storageKey,
+                mimeType,
+                fileSize: buffer.length,
+                sha256Hash,
+                status: DocumentStatus.VERIFIED,
+                extractedText,
+                detectedBnsSections: metadata.detectedBnsSections,
+                detectedParties: metadata.detectedParties,
+                ledgerTxId: ledgerResult.txId,
+                uploadedBy: user.id,
+                versions: {
+                  create: {
+                    versionNum: 1,
+                    storageKey,
+                    sha256Hash,
+                    changeLog: 'Initial ingestion with case registration.',
+                  },
+                },
+              },
+            });
+
+            await prisma.custodyEvent.createMany({
+              data: [
+                {
+                  caseId: newCase.id,
+                  documentId: docId,
+                  action: CustodyAction.UPLOADED,
+                  actorId: user.id,
+                  actorRole: user.role,
+                  documentHash: sha256Hash,
+                  ledgerTxId: ledgerResult.txId,
+                  ipAddress: request.ip,
+                  metadata: { fileName: originalFileName, fileSize: buffer.length, mimeType },
+                },
+                {
+                  caseId: newCase.id,
+                  documentId: docId,
+                  action: CustodyAction.OCR_PROCESSED,
+                  actorId: user.id,
+                  actorRole: user.role,
+                  documentHash: sha256Hash,
+                  metadata: { engine: 'Pramaan DocumentAIService', confidence: metadata.confidenceScore },
+                },
+              ],
+            });
+
+            if (extractedText) {
+              await ragService.indexDocument(docId, extractedText, newCase.id, {
+                documentType: DocumentType.FIR,
+                title: data.title,
+                sha256Hash,
+                originalFileName,
+              }).catch(() => {});
+            }
+          }
+        } catch (err: any) {
+          fastify.log.warn(`Warning: failed to auto-ingest initial case document: ${err.message}`);
+        }
+      }
 
       await auditService.logAction({
         actorId: user.id,

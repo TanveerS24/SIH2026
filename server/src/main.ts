@@ -23,5 +23,7 @@ export async function start(): Promise<void> {
   }
 }
 
-start();
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}
 

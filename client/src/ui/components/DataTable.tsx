@@ -26,8 +26,13 @@ export function DataTable<T>({
   style,
 }: DataTableProps<T>) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-    <View style={[styles.container, style]}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={true}
+      style={styles.horizontalScroll}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={[styles.container, style]}>
       {/* Table Header */}
       <View style={styles.headerRow}>
         {columns.map((col) => (
@@ -87,12 +92,20 @@ export function DataTable<T>({
 }
 
 const styles = StyleSheet.create({
+  horizontalScroll: {
+    maxWidth: '100%',
+    width: '100%',
+  },
+  scrollContent: {
+    minWidth: '100%',
+  },
   container: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 2,
     overflow: 'hidden',
+    minWidth: '100%',
   },
   headerRow: {
     flexDirection: 'row',

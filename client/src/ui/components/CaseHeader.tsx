@@ -96,6 +96,8 @@ const styles = StyleSheet.create({
   caseBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   caseLabel: {
     fontFamily: typography.fontSans,
@@ -106,7 +108,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 2,
-    marginRight: 6,
     letterSpacing: 0.5,
   },
   caseNumber: {
@@ -127,6 +128,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
     marginVertical: 6,
+    flexWrap: 'wrap',
   },
   metaGrid: {
     flexDirection: 'row',
@@ -138,7 +140,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   metaItem: {
-    minWidth: 160,
+    minWidth: 140,
+    flex: 1,
   },
   metaLabel: {
     fontFamily: typography.fontSans,
@@ -153,6 +156,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textPrimary,
     fontWeight: '500',
+    flexWrap: 'wrap',
   },
   sectionBadges: {
     flexDirection: 'row',

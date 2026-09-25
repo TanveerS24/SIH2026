@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { colors, typography, Button, Panel } from '@pramaan/ui';
 
 const EVIDENCE_TYPES = [
-  { id: 'PHOTO_EXHIBIT', tag: 'PHOTO', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device' },
+  { id: 'PHOTOGRAPHIC_EVIDENCE', tag: 'PHOTO', label: 'PHOTO EXHIBIT', desc: 'Physical scene or device' },
   { id: 'WITNESS_STATEMENT', tag: 'STATEMENT', label: 'WITNESS STATEMENT', desc: 'Spot deposition (Sec. 180 BNSS)' },
   { id: 'SEIZURE_MEMO', tag: 'SEIZURE', label: 'SEIZURE MEMO', desc: 'On-scene recovery record' },
 ] as const;
@@ -13,7 +13,7 @@ type CaptureType = typeof EVIDENCE_TYPES[number]['id'];
 
 export default function MobileCaptureScreen() {
   const router = useRouter();
-  const [captureType, setCaptureType] = useState<CaptureType>('PHOTO_EXHIBIT');
+  const [captureType, setCaptureType] = useState<CaptureType>('PHOTOGRAPHIC_EVIDENCE');
   const [isCapturing, setIsCapturing] = useState(false);
 
   const handleCapture = () => {

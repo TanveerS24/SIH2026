@@ -10,6 +10,7 @@ import {
   VerificationSeal,
   HashDisplay,
   StatusTag,
+  LoadingScreen,
 } from '@pramaan/ui';
 import { api } from '../../../../services/api';
 
@@ -40,7 +41,10 @@ export default function DocumentVerificationScreen() {
   if (docLoading || verifyLoading) {
     return (
       <View style={styles.centerWrap}>
-        <Text style={styles.loadingText}>Executing Cryptographic Verification against Permissioned Ledger...</Text>
+        <LoadingScreen
+          message="Executing Cryptographic Verification..."
+          subMessage="Auditing object storage hash against permissioned blockchain ledger anchor"
+        />
       </View>
     );
   }
@@ -163,15 +167,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     marginBottom: 16,
+    flexWrap: 'wrap',
   },
   headerTitles: {
     flex: 1,
+    minWidth: 200,
   },
   title: {
     fontFamily: typography.fontSerif,
     fontSize: 20,
     fontWeight: '800',
     color: colors.primary,
+    flexWrap: 'wrap',
   },
   subtitle: {
     fontFamily: typography.fontSans,

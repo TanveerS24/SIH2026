@@ -124,16 +124,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginVertical: 4,
     textAlign: 'center',
+    flexWrap: 'wrap',
   },
   detailText: {
     fontFamily: typography.fontSans,
     fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
+    flexWrap: 'wrap',
   },
   metaText: {
     fontFamily: typography.fontMono,
     fontSize: 10,
     marginTop: 4,
+    textAlign: 'center',
+    flexWrap: 'wrap',
+    ...({ wordBreak: 'break-all' } as any),
   },
 });

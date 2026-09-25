@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { colors, typography, Panel, Input, Button, StatusTag, OfficialSeal } from '@pramaan/ui';
+import { colors, typography, Panel, Input, Button, StatusTag, OfficialSeal, LoadingScreen } from '@pramaan/ui';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfileScreen() {
@@ -63,13 +63,24 @@ export default function ProfileScreen() {
     }
   };
 
+  if (!user) {
+    return (
+      <ScrollView contentContainerStyle={[styles.container, isMobile && styles.containerMobile]}>
+        <LoadingScreen
+          message="Loading Officer Profile..."
+          subMessage="Authenticating session and fetching statutory credentials"
+        />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={[styles.container, isMobile && styles.containerMobile]}>
       {/* Header Banner */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <OfficialSeal size={40} />
-          <View style={{ marginLeft: 12 }}>
+          <OfficialSeal size={isMobile ? 32 : 40} />
+          <View style={styles.headerTextWrap}>
             <Text style={styles.pageTitle}>OFFICER IDENTITY & PROFILE SCRUTINY</Text>
             <Text style={styles.pageSub}>
               Digital Chain-of-Custody Authentication & Cryptographic Credentials
@@ -220,35 +231,14 @@ export default function ProfileScreen() {
         </View>
       </Panel>
 
-      {/* Security & Cryptographic Session Diagnostics */}
-      <Panel
-        title="CRYPTOGRAPHIC IDENTITY & NON-REPUDIATION STATUS"
-        subtitle="Active session parameters under BSA Section 63/65B Compliance"
-      >
-        <View style={styles.securityRow}>
-          <View style={styles.secItem}>
-            <Text style={styles.secLabel}>AUTHENTICATION SCHEME</Text>
-            <Text style={styles.secVal}>HMAC-SHA256 JWT & ROTATING REFRESH TOKEN</Text>
-          </View>
-          <View style={styles.secItem}>
-            <Text style={styles.secLabel}>CHAIN-OF-CUSTODY COMPLIANCE</Text>
-            <Text style={[styles.secVal, { color: colors.verified }]}>
-              BHARATIYA SAKSHYA ADHINIYAM (BSA), 2023 COMPLIANT
-            </Text>
-          </View>
-          <View style={styles.secItem}>
-            <Text style={styles.secLabel}>AUDIT NON-REPUDIATION</Text>
-            <Text style={styles.secVal}>EVERY ACTION LOGGED WITH ACTOR BADGE & IP ADDRESS</Text>
-          </View>
-        </View>
-      </Panel>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    padding: 20,
+    maxWidth: '100%',
   },
   containerMobile: {
     padding: 12,
@@ -256,27 +246,37 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 20,
     backgroundColor: colors.surface,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: colors.borderDark,
     borderRadius: 2,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    maxWidth: '100%',
+  },
+  headerTextWrap: {
+    marginLeft: 12,
+    flex: 1,
+    flexShrink: 1,
   },
   pageTitle: {
     fontFamily: typography.fontSerif,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
+    flexWrap: 'wrap',
   },
   pageSub: {
     fontFamily: typography.fontSans,
     fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
+    flexWrap: 'wrap',
   },
   errorBanner: {
     backgroundColor: colors.alertLight,
@@ -314,12 +314,12 @@ const styles = StyleSheet.create({
   idGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 12,
   },
   idField: {
-    flexBasis: '48%',
+    flexBasis: '45%',
     flexGrow: 1,
-    minWidth: 220,
+    minWidth: 150,
     marginBottom: 8,
   },
   idLabel: {
@@ -373,28 +373,5 @@ const styles = StyleSheet.create({
   },
   saveBtnRow: {
     marginTop: 8,
-  },
-  securityRow: {
-    gap: 12,
-    padding: 6,
-  },
-  secItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingBottom: 8,
-  },
-  secLabel: {
-    fontFamily: typography.fontSans,
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  secVal: {
-    fontFamily: typography.fontMono,
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textPrimary,
   },
 });

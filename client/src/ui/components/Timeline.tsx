@@ -194,6 +194,7 @@ const styles = StyleSheet.create({
   hashWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginTop: 6,
     backgroundColor: colors.surface,
     padding: 4,
@@ -212,10 +213,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.primary,
     flex: 1,
+    flexShrink: 1,
+    ...({ wordBreak: 'break-all' } as any),
   },
   ledgerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginTop: 4,
   },
   ledgerLabel: {
@@ -229,6 +233,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontMono,
     fontSize: 10,
     color: colors.ledgerGold,
+    flexShrink: 1,
+    ...({ wordBreak: 'break-all' } as any),
   },
   metaWrap: {
     marginTop: 6,

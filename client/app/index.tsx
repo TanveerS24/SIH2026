@@ -1,8 +1,8 @@
 import React from 'react';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { colors } from '@pramaan/ui';
+import { View, StyleSheet } from 'react-native';
+import { colors, LoadingScreen } from '@pramaan/ui';
 
 export default function RootIndex() {
   const { isAuthenticated, isLoading, user } = useAuthStore();
@@ -10,7 +10,10 @@ export default function RootIndex() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <LoadingScreen
+          message="Authenticating Session & Initializing Ledger..."
+          subMessage="Verifying credentials with central authority node"
+        />
       </View>
     );
   }

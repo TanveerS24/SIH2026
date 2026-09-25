@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { colors, typography, Panel, DataTable } from '@pramaan/ui';
+import { colors, typography, Panel, DataTable, LoadingScreen } from '@pramaan/ui';
 import { api } from '../../services/api';
 
 export default function AnalyticsScreen() {
@@ -34,6 +34,17 @@ export default function AnalyticsScreen() {
     { label: 'AVG DAYS TO FILE', value: `${stats?.avgChargeSheetDays ?? 0}d`, color: colors.primary },
     { label: 'LEDGER BLOCKS', value: stats?.totalEvidenceAnchored ?? 0, color: colors.ledgerGold },
   ];
+
+  if (isLoading) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <LoadingScreen
+          message="Aggregating NCRB Disposal Analytics..."
+          subMessage="Computing state-level conviction metrics & charge sheet turnaround times"
+        />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { Role, AuditAction } from '@prisma/client';
+import { Role, AuditAction, AccessRequestStatus } from '@prisma/client';
 import { prisma } from '../config/prisma.js';
 import { auditService } from '../services/audit.service.js';
 
@@ -110,7 +110,21 @@ export async function checkCaseAccess(
     return;
   }
 
-  // 3. Investigation Officer & WHDO & Prosecutor: Verify assignment or jurisdiction
+  // 3. Check for active approved AccessRequest for this user and case
+  const activeAccessRequest = await prisma.accessRequest.findFirst({
+    where: {
+      caseId,
+      requesterId: user.id,
+      status: AccessRequestStatus.APPROVED,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  if (activeAccessRequest) {
+    return;
+  }
+
+  // 4. Investigation Officer & WHDO & Prosecutor: Verify assignment or jurisdiction
   const assignment = await prisma.caseAssignment.findFirst({
     where: {
       caseId,

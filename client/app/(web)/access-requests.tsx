@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { colors, typography, Panel, Button, Input, StatusTag } from '@pramaan/ui';
+import { colors, typography, Panel, Button, Input, StatusTag, LoadingScreen } from '@pramaan/ui';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -13,12 +13,12 @@ export default function AccessRequestsScreen() {
   const [reason, setReason] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const { data: requests = [] } = useQuery({
+  const { data: requests = [], isLoading: requestsLoading } = useQuery({
     queryKey: ['access-requests'],
     queryFn: () => api.getAccessRequests(),
   });
 
-  const { data: cases = [] } = useQuery({
+  const { data: cases = [], isLoading: casesLoading } = useQuery({
     queryKey: ['cases-for-access'],
     queryFn: () => api.getCases(),
   });
@@ -47,6 +47,17 @@ export default function AccessRequestsScreen() {
       return next;
     });
   };
+
+  if (requestsLoading || casesLoading) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <LoadingScreen
+          message="Loading Access Clearance Requests..."
+          subMessage="Fetching inter-cadre case authorization credentials"
+        />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -218,6 +229,7 @@ const styles = StyleSheet.create({
   reqHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 4,
   },

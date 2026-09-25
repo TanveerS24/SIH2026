@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { colors, typography, Panel, Button, Input, StatusTag, RegisterRow, HashDisplay } from '@pramaan/ui';
+import { colors, typography, Panel, Button, Input, StatusTag, RegisterRow, HashDisplay, LoadingScreen } from '@pramaan/ui';
 import { api } from '../../services/api';
 
 export default function SearchScreen() {
@@ -69,6 +69,15 @@ export default function SearchScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Loading Indicator while Searching */}
+      {isLoading && (
+        <LoadingScreen
+          inline
+          message={`Executing Intelligence Search for "${activeQuery}"...`}
+          subMessage="Performing vector similarity lookup & RAG grounded evidence synthesis"
+        />
+      )}
 
       {/* AI Synthesis Summary Card */}
       {searchResults?.aiSummary && (
@@ -222,6 +231,7 @@ const styles = StyleSheet.create({
     borderColor: colors.ledgerGoldBorder,
     padding: 14,
     borderRadius: 2,
+    overflow: 'hidden',
   },
   aiText: {
     fontFamily: typography.fontSans,
@@ -243,6 +253,7 @@ const styles = StyleSheet.create({
   ragBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginBottom: 8,
     gap: 8,
   },
@@ -262,6 +273,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 10,
     fontWeight: '600',
+    flexShrink: 1,
   },
   citedContainer: {
     marginTop: 10,
@@ -314,6 +326,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: 4,
   },
   docResultType: {

@@ -63,6 +63,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 2,
     marginBottom: 16,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -82,6 +83,8 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   title: {
     fontFamily: typography.fontSerif,
@@ -89,9 +92,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   badgeWrap: {
-    marginLeft: 8,
+    marginLeft: 0,
   },
   subtitle: {
     fontFamily: typography.fontSans,
