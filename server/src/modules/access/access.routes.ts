@@ -21,29 +21,51 @@ export async function accessRoutes(fastify: FastifyInstance) {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        case: { select: { caseNumber: true, title: true } },
+        case: {
+          select: {
+            caseNumber: true,
+            title: true,
+            assignments: { select: { userId: true } },
+          },
+        },
         requester: { select: { name: true, badgeNumber: true, role: true } },
         reviewer: { select: { name: true, badgeNumber: true, role: true } },
       },
     });
 
-    const formatted = requests.map((r) => ({
-      id: r.id,
-      caseId: r.caseId,
-      caseNumber: r.case.caseNumber,
-      caseTitle: r.case.title,
-      requesterId: r.requesterId,
-      requesterName: r.requester.name,
-      requesterRole: r.requester.role,
-      reason: r.reason,
-      status: r.status,
-      durationHours: r.durationHours,
-      expiresAt: r.expiresAt?.toISOString() ?? null,
-      reviewedBy: r.reviewedBy,
-      reviewedByName: r.reviewer?.name ?? null,
-      reviewedAt: r.reviewedAt?.toISOString() ?? null,
-      createdAt: r.createdAt.toISOString(),
-    }));
+    const formatted = requests.map((r) => {
+      const isAssigned = r.case.assignments.some((a) => a.userId === user.id);
+      const isSelf = r.requesterId === user.id;
+      // Authority check:
+      // 1. Separation of duties: Never approve own request
+      // 2. Judges and Prosecutors hold supervisory clearance authority
+      // 3. IOs can only review requests for cases they are assigned to
+      const canReview = !isSelf && (
+        user.role === Role.JUDGE ||
+        user.role === Role.PROSECUTOR ||
+        (user.role === Role.INVESTIGATION_OFFICER && isAssigned)
+      );
+
+      return {
+        id: r.id,
+        caseId: r.caseId,
+        caseNumber: r.case.caseNumber,
+        caseTitle: r.case.title,
+        requesterId: r.requesterId,
+        requesterName: r.requester.name,
+        requesterRole: r.requester.role,
+        reason: r.reason,
+        status: r.status,
+        durationHours: r.durationHours,
+        expiresAt: r.expiresAt?.toISOString() ?? null,
+        reviewedBy: r.reviewedBy,
+        reviewedByName: r.reviewer?.name ?? null,
+        reviewedAt: r.reviewedAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+        canReview,
+        isSelf,
+      };
+    });
 
     return reply.status(200).send(formatted);
   });
@@ -101,9 +123,70 @@ export async function accessRoutes(fastify: FastifyInstance) {
       const user = request.user;
       const body = request.body as any;
 
-      const accessReq = await prisma.accessRequest.findUnique({ where: { id } });
+      const accessReq = await prisma.accessRequest.findUnique({
+        where: { id },
+        include: {
+          case: {
+            include: {
+              assignments: true,
+            },
+          },
+        },
+      });
       if (!accessReq) {
         return reply.status(404).send({ error: 'NotFound', message: 'Access request not found' });
+      }
+
+      if (accessReq.status !== AccessRequestStatus.PENDING) {
+        return reply.status(400).send({
+          error: 'BadRequest',
+          message: `Access request has already been reviewed (${accessReq.status}).`,
+        });
+      }
+
+      // 1. Separation of duties: Self-approval is strictly forbidden
+      if (accessReq.requesterId === user.id) {
+        await auditService.logAction({
+          actorId: user.id,
+          actorRole: user.role,
+          action: AuditAction.ACCESS_REQUEST_DENIED,
+          resource: 'ACCESS_REQUEST',
+          resourceId: id,
+          caseId: accessReq.caseId,
+          ipAddress: request.ip,
+          result: 'DENIED',
+          reason: `Conflict of interest: ${user.name} (${user.role}) attempted to self-approve own access request ${id}`,
+        });
+
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'Separation of duties violation: Officers cannot approve or review their own access requests.',
+        });
+      }
+
+      // 2. Authority check:
+      // Judges and Prosecutors have supervisory clearance authority.
+      // Investigation Officers can only review requests for cases they are actively assigned to.
+      if (user.role === Role.INVESTIGATION_OFFICER) {
+        const isAssigned = accessReq.case.assignments.some((a) => a.userId === user.id);
+        if (!isAssigned) {
+          await auditService.logAction({
+            actorId: user.id,
+            actorRole: user.role,
+            action: AuditAction.ACCESS_REQUEST_DENIED,
+            resource: 'ACCESS_REQUEST',
+            resourceId: id,
+            caseId: accessReq.caseId,
+            ipAddress: request.ip,
+            result: 'DENIED',
+            reason: `Unauthorized approval attempt: ${user.name} is not assigned to case ${accessReq.case.caseNumber}`,
+          });
+
+          return reply.status(403).send({
+            error: 'Forbidden',
+            message: 'Authority violation: Investigation Officers can only review access requests for cases they are actively assigned to.',
+          });
+        }
       }
 
       const isApproved = body?.approved === true;
@@ -129,8 +212,8 @@ export async function accessRoutes(fastify: FastifyInstance) {
         ipAddress: request.ip,
         result: isApproved ? 'SUCCESS' : 'DENIED',
         reason: isApproved
-          ? `Elevated access granted for ${accessReq.durationHours} hours by ${user.name}`
-          : `Elevated access denied by ${user.name}`,
+          ? `Elevated access granted for ${accessReq.durationHours} hours by ${user.name} (${user.role})`
+          : `Elevated access denied by ${user.name} (${user.role})`,
       });
 
       return reply.status(200).send(updated);
