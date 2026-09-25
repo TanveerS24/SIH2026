@@ -139,6 +139,7 @@ model User {
   reviewedRequests AccessRequest[]  @relation("Reviewer")
   syncRecords      SyncRecord[]
   refreshTokens    RefreshToken[]
+  notifications    Notification[]
 }
 
 model RefreshToken {
@@ -369,4 +370,19 @@ model DocumentChunk {
 
   @@index([caseId])
   @@index([documentId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // PROFILE, SECURITY, CLEARANCE, ASSIGNMENT
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

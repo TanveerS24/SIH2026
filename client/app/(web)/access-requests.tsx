@@ -38,8 +38,6 @@ export default function AccessRequestsScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['access-requests'] }),
   });
 
-  const isSupervisor = user?.role === 'INVESTIGATION_OFFICER' || user?.role === 'JUDGE' || user?.role === 'PROSECUTOR';
-
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -82,6 +80,11 @@ export default function AccessRequestsScreen() {
         ) : requests.map((r) => {
           const isExpanded = expandedIds.has(r.id);
           const statusVariant = r.status === 'APPROVED' ? 'verified' : r.status === 'REJECTED' ? 'alert' : 'warning';
+          const isSelf = (r as any).isSelf ?? (r.requesterId === user?.id || (user?.name && r.requesterName === user.name));
+          const canReview = (r as any).canReview !== undefined
+            ? (r as any).canReview
+            : (!isSelf && (user?.role === 'JUDGE' || user?.role === 'PROSECUTOR'));
+
           return (
             <TouchableOpacity
               key={r.id}
@@ -112,21 +115,40 @@ export default function AccessRequestsScreen() {
                     </Text>
                   )}
 
-                  {isSupervisor && r.status === 'PENDING' && (
-                    <View style={styles.reviewActions}>
-                      <Button
-                        title="APPROVE"
-                        onPress={() => reviewMutation.mutate({ id: r.id, approved: true })}
-                        size="sm"
-                        variant="verified"
-                      />
-                      <Button
-                        title="REJECT"
-                        onPress={() => reviewMutation.mutate({ id: r.id, approved: false })}
-                        variant="danger"
-                        size="sm"
-                      />
-                    </View>
+                  {r.status === 'PENDING' && (
+                    canReview ? (
+                      <View style={styles.reviewActions}>
+                        <Button
+                          title="APPROVE"
+                          onPress={() => reviewMutation.mutate({ id: r.id, approved: true })}
+                          size="sm"
+                          variant="verified"
+                          loading={reviewMutation.isPending}
+                        />
+                        <Button
+                          title="REJECT"
+                          onPress={() => reviewMutation.mutate({ id: r.id, approved: false })}
+                          variant="danger"
+                          size="sm"
+                          loading={reviewMutation.isPending}
+                        />
+                      </View>
+                    ) : isSelf ? (
+                      <View style={styles.selfNoticeBox}>
+                        <Text style={styles.selfNoticeText}>
+                          ⏳ AWAITING SUPERVISORY / JUDICIAL REVIEW
+                        </Text>
+                        <Text style={styles.selfNoticeSub}>
+                          Statutory separation of duties: Requesting officers cannot self-approve access requests.
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.pendingNoticeBox}>
+                        <Text style={styles.pendingNoticeText}>
+                          ⏳ PENDING REVIEW BY ASSIGNED OFFICER / MAGISTRATE
+                        </Text>
+                      </View>
+                    )
                   )}
                 </View>
               )}
@@ -290,6 +312,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginTop: 4,
+  },
+  selfNoticeBox: {
+    backgroundColor: colors.surfaceSelected || '#F0F4F8',
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    borderRadius: 2,
+    padding: 8,
+    marginTop: 6,
+    gap: 2,
+  },
+  selfNoticeText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.3,
+  },
+  selfNoticeSub: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    color: colors.textMuted,
+  },
+  pendingNoticeBox: {
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    padding: 8,
+    marginTop: 6,
+  },
+  pendingNoticeText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
   },
 
   modalBackdrop: {

@@ -74,6 +74,8 @@ export const AccessRequestSummarySchema = z.object({
   reviewedByName: z.string().nullable().optional(),
   reviewedAt: z.string().nullable().optional(),
   createdAt: z.string(),
+  canReview: z.boolean().optional(),
+  isSelf: z.boolean().optional(),
 });
 
 export type AccessRequestSummary = z.infer<typeof AccessRequestSummarySchema>;

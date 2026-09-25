@@ -11,6 +11,8 @@ import { accessRoutes } from './access/index.js';
 import { syncRoutes } from './sync/index.js';
 import { ragRoutes } from './ai/rag.routes.js';
 
+import { notificationRoutes } from './notifications/index.js';
+
 export async function registerAllRoutes(app: FastifyInstance): Promise<void> {
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(casesRoutes, { prefix: '/cases' });
@@ -23,6 +25,7 @@ export async function registerAllRoutes(app: FastifyInstance): Promise<void> {
   await app.register(accessRoutes, { prefix: '/access-requests' });
   await app.register(syncRoutes, { prefix: '/sync' });
   await app.register(ragRoutes, { prefix: '/ai/rag' });
+  await app.register(notificationRoutes, { prefix: '/notifications' });
 }
 
 export * from './auth/index.js';

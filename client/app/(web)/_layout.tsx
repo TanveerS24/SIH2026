@@ -9,8 +9,10 @@ import {
   Modal,
 } from 'react-native';
 import { Slot, useRouter, usePathname } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { colors, typography, OfficialSeal } from '@pramaan/ui';
 import { useAuthStore, DEMO_ACCOUNTS } from '../../stores/authStore';
+import { api } from '../../services/api';
 
 export default function WebLayout() {
   const router = useRouter();
@@ -21,6 +23,14 @@ export default function WebLayout() {
   const isCompact = width < 1120;
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: () => api.getNotifications(),
+    enabled: !!user?.id,
+    refetchInterval: 15000,
+  });
+  const unreadCount = notifData?.unreadCount || 0;
+
   const navItems = [
     { label: 'DASHBOARD', path: '/(web)/dashboard', tag: 'DASH' },
     { label: 'CASE REGISTER', path: '/(web)/cases', tag: 'CASES' },
@@ -28,6 +38,12 @@ export default function WebLayout() {
     { label: 'GLOBAL AUDIT TRAIL', path: '/(web)/audit', tag: 'AUDIT' },
     { label: 'NCRB ANALYTICS', path: '/(web)/analytics', tag: 'STATS' },
     { label: 'ACCESS REQUESTS', path: '/(web)/access-requests', tag: 'ACCESS' },
+    {
+      label: 'NOTIFICATIONS',
+      path: '/(web)/notifications',
+      tag: 'ALERTS',
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    },
     { label: 'OFFICER PROFILE', path: '/(web)/profile', tag: 'PROFILE' },
   ];
 
@@ -74,6 +90,11 @@ export default function WebLayout() {
               <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
                 {item.label}
               </Text>
+              {item.badge ? (
+                <View style={styles.navItemBadge}>
+                  <Text style={styles.navItemBadgeText}>{item.badge}</Text>
+                </View>
+              ) : null}
             </TouchableOpacity>
           );
         })}
@@ -175,6 +196,18 @@ export default function WebLayout() {
         {isMobile ? (
           <View style={styles.mobileActionsRow}>
             <TouchableOpacity
+              onPress={() => router.push('/(web)/notifications')}
+              style={[styles.mobileNotifBtn, unreadCount > 0 && styles.mobileNotifBtnUnread]}
+              accessibilityLabel="Notifications"
+            >
+              <Text style={styles.mobileNotifIcon}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={styles.mobileNotifBadge}>
+                  <Text style={styles.mobileNotifBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => router.push('/(web)/profile')}
               style={styles.mobileCadrePill}
               activeOpacity={0.7}
@@ -193,6 +226,15 @@ export default function WebLayout() {
               <Text style={styles.userName}>{user?.name || 'Officer'}</Text>
               <Text style={styles.userMeta}>
                 {user?.role.replace(/_/g, ' ')} • {user?.badgeNumber}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/(web)/notifications')}
+              style={[styles.notifBtn, unreadCount > 0 && styles.notifBtnHasUnread]}
+            >
+              <Text style={styles.notifBtnIcon}>🔔</Text>
+              <Text style={[styles.notifBtnText, unreadCount > 0 && styles.notifBtnTextUnread]}>
+                {unreadCount > 0 ? `ALERTS (${unreadCount})` : 'ALERTS'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.profileBtn}>
@@ -451,6 +493,68 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginTop: 1,
   },
+  notifBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    backgroundColor: colors.surfaceMuted,
+    gap: 4,
+  },
+  notifBtnHasUnread: {
+    borderColor: '#f59e0b',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+  },
+  notifBtnIcon: {
+    fontSize: 10,
+  },
+  notifBtnText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  notifBtnTextUnread: {
+    color: '#f59e0b',
+    fontWeight: '800',
+  },
+  mobileNotifBtn: {
+    position: 'relative',
+    padding: 6,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    backgroundColor: colors.surfaceMuted,
+  },
+  mobileNotifBtnUnread: {
+    borderColor: '#f59e0b',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+  },
+  mobileNotifIcon: {
+    fontSize: 12,
+  },
+  mobileNotifBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#f59e0b',
+    borderRadius: 8,
+    minWidth: 14,
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  mobileNotifBadgeText: {
+    fontFamily: typography.fontSans,
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#000',
+  },
   profileBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -593,6 +697,19 @@ const styles = StyleSheet.create({
   },
   navLabelActive: {
     color: colors.primary,
+  },
+  navItemBadge: {
+    marginLeft: 'auto',
+    backgroundColor: '#f59e0b',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  navItemBadgeText: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#000',
   },
   drawerQuickActions: {
     gap: 6,

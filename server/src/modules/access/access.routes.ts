@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../config/prisma.js';
 import { auditService } from '../../services/audit.service.js';
+import { notificationService } from '../../services/notification.service.js';
 import { requireRoles } from '../../plugins/rbac.plugin.js';
 import { Role, AuditAction, AccessRequestStatus } from '@prisma/client';
 import { CreateAccessRequestSchema } from '@pramaan/shared-types';
@@ -214,6 +215,16 @@ export async function accessRoutes(fastify: FastifyInstance) {
         reason: isApproved
           ? `Elevated access granted for ${accessReq.durationHours} hours by ${user.name} (${user.role})`
           : `Elevated access denied by ${user.name} (${user.role})`,
+      });
+
+      await notificationService.createNotification({
+        userId: accessReq.requesterId,
+        type: 'CLEARANCE',
+        title: isApproved ? 'Access Request Approved' : 'Access Request Denied',
+        message: isApproved
+          ? `Your access request for Case #${accessReq.case.caseNumber} has been approved by ${user.name} (${user.role}) for ${accessReq.durationHours} hours.`
+          : `Your access request for Case #${accessReq.case.caseNumber} was denied by ${user.name} (${user.role}).`,
+        metadata: { caseId: accessReq.caseId, caseNumber: accessReq.case.caseNumber, status: updated.status },
       });
 
       return reply.status(200).send(updated);

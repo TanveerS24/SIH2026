@@ -9,6 +9,7 @@ import { analyticsApi } from './analytics.api';
 import { accessApi } from './access.api';
 import { syncApi } from './sync.api';
 import { ragApi } from './rag.api';
+import { notificationApi } from './notification.api';
 
 export * from './client';
 export * from './auth.api';
@@ -22,6 +23,7 @@ export * from './analytics.api';
 export * from './access.api';
 export * from './sync.api';
 export * from './rag.api';
+export * from './notification.api';
 
 export const api = {
   // Auth
@@ -74,4 +76,9 @@ export const api = {
 
   // Offline Sync
   syncBatch: syncApi.syncBatch.bind(syncApi),
+
+  // Notifications
+  getNotifications: notificationApi.getNotifications.bind(notificationApi),
+  markNotificationRead: notificationApi.markAsRead.bind(notificationApi),
+  markAllNotificationsRead: notificationApi.markAllAsRead.bind(notificationApi),
 };

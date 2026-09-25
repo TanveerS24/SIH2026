@@ -6,6 +6,7 @@ import { prisma } from '../../config/prisma.js';
 import { env } from '../../config/env.js';
 import { auditService } from '../../services/audit.service.js';
 import { SecureLogger } from '../../services/secure-logger.service.js';
+import { notificationService } from '../../services/notification.service.js';
 import { AuditAction, Role } from '@prisma/client';
 import {
   LoginRequestSchema,
@@ -186,6 +187,13 @@ export async function authRoutes(fastify: FastifyInstance) {
       userAgent: request.headers['user-agent'],
       result: 'SUCCESS',
       reason: 'User authenticated successfully with TOTP MFA.',
+    });
+
+    await notificationService.createNotification({
+      userId: user.id,
+      type: 'SECURITY',
+      title: 'Session Authenticated',
+      message: `Official session established via TOTP multi-factor verification (IP: ${request.ip || '127.0.0.1'}).`,
     });
 
     return reply.status(200).send({
@@ -409,6 +417,24 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     });
 
+    if (name || department || jurisdiction) {
+      await notificationService.createNotification({
+        userId,
+        type: 'PROFILE',
+        title: 'Profile Updated',
+        message: `Your official profile details (${[name ? 'Name' : '', department ? 'Department' : '', jurisdiction ? 'Jurisdiction' : ''].filter(Boolean).join(', ')}) were updated.`,
+      });
+    }
+
+    if (newPassword) {
+      await notificationService.createNotification({
+        userId,
+        type: 'SECURITY',
+        title: 'Security Alert: Password Changed',
+        message: 'Your official credentials password was successfully modified. If you did not make this change, contact IT Security immediately.',
+      });
+    }
+
     SecureLogger.info('AUTH_PROFILE_UPDATE', `Officer profile updated: ${updatedUser.badgeNumber}`);
 
     return reply.status(200).send({
@@ -482,6 +508,13 @@ export async function authRoutes(fastify: FastifyInstance) {
       userAgent: request.headers['user-agent'],
       result: 'SUCCESS',
       reason: `Evaluator mock access token issued for persona: ${user.role}`,
+    });
+
+    await notificationService.createNotification({
+      userId: user.id,
+      type: 'SECURITY',
+      title: 'Session Authenticated',
+      message: `Signed in as ${user.name} (${user.role}). Official session active.`,
     });
 
     return reply.status(200).send({

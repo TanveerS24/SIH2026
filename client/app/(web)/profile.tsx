@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { colors, typography, Panel, Input, Button, StatusTag, OfficialSeal, LoadingScreen } from '@pramaan/ui';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { user, updateProfile, isLoading, error, clearError } = useAuthStore();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -97,7 +99,18 @@ export default function ProfileScreen() {
 
       {feedback && (
         <View style={styles.successBanner}>
-          <Text style={styles.successText}>[STATUS CONFIRMED] {feedback}</Text>
+          <View style={{ flex: 1, minWidth: 200 }}>
+            <Text style={styles.successText}>[STATUS CONFIRMED] {feedback}</Text>
+            <Text style={styles.successSubText}>
+              A confidential audit record has been dispatched to your private notifications ledger.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(web)/notifications')}
+            style={styles.notifLinkBtn}
+          >
+            <Text style={styles.notifLinkText}>VIEW NOTIFICATIONS →</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -296,15 +309,41 @@ const styles = StyleSheet.create({
     backgroundColor: colors.verifiedLight,
     borderWidth: 1,
     borderColor: colors.verifiedBorder,
-    padding: 10,
+    padding: 12,
     borderRadius: 2,
     marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   successText: {
     fontFamily: typography.fontSans,
     fontSize: 11,
     fontWeight: '700',
     color: colors.verifiedDark,
+  },
+  successSubText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  notifLinkBtn: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.verifiedBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 2,
+  },
+  notifLinkText: {
+    fontFamily: typography.fontSans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.verifiedDark,
+    letterSpacing: 0.5,
   },
   idCard: {
     backgroundColor: colors.surface,
