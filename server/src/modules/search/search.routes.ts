@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../config/prisma.js';
 import { ragService } from '../../services/rag.service.js';
 import { auditService } from '../../services/audit.service.js';
-import { AuditAction } from '@prisma/client';
+import { AuditAction, Role, CaseStatus } from '@prisma/client';
 
 export async function searchRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -21,23 +21,54 @@ export async function searchRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // 1. Search Cases
-    const caseWhere: any = {};
+    // Role-based case scoping
+    const andConditions: any[] = [];
+
+    if (user.role === Role.INVESTIGATION_OFFICER) {
+      andConditions.push({
+        OR: [
+          { assignments: { some: { userId: user.id } } },
+          { jurisdiction: user.jurisdiction },
+        ],
+      });
+    } else if (user.role === Role.WOMEN_HELP_DESK_OFFICER) {
+      andConditions.push({
+        OR: [
+          { documents: { some: { uploadedBy: user.id } } },
+          { jurisdiction: user.jurisdiction },
+        ],
+      });
+    } else if (user.role === Role.PROSECUTOR) {
+      andConditions.push({
+        OR: [
+          { isFiled: true },
+          { assignments: { some: { userId: user.id } } },
+          { status: { in: [CaseStatus.CHARGE_SHEET_PREPARED, CaseStatus.FILED, CaseStatus.JUDICIAL_PROCEEDINGS] } },
+        ],
+      });
+    } else if (user.role === Role.JUDGE) {
+      andConditions.push({ isFiled: true });
+    }
+
     if (searchQuery) {
-      caseWhere.OR = [
-        { caseNumber: { contains: searchQuery, mode: 'insensitive' } },
-        { title: { contains: searchQuery, mode: 'insensitive' } },
-        { description: { contains: searchQuery, mode: 'insensitive' } },
-        { incidentLocation: { contains: searchQuery, mode: 'insensitive' } },
-        { suspects: { hasSome: [searchQuery] } },
-      ];
+      andConditions.push({
+        OR: [
+          { caseNumber: { contains: searchQuery, mode: 'insensitive' } },
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          { description: { contains: searchQuery, mode: 'insensitive' } },
+          { incidentLocation: { contains: searchQuery, mode: 'insensitive' } },
+          { suspects: { hasSome: [searchQuery] } },
+        ],
+      });
     }
     if (section) {
-      caseWhere.bnsSections = { hasSome: [section] };
+      andConditions.push({ bnsSections: { hasSome: [section] } });
     }
     if (jurisdiction) {
-      caseWhere.jurisdiction = { contains: jurisdiction, mode: 'insensitive' };
+      andConditions.push({ jurisdiction: { contains: jurisdiction, mode: 'insensitive' } });
     }
+
+    const caseWhere: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const matchingCases = await prisma.case.findMany({
       where: caseWhere,
@@ -47,16 +78,24 @@ export async function searchRoutes(fastify: FastifyInstance) {
       },
     });
 
-    // 2. Search Documents (Extracted OCR Text + Title + File Name)
-    const docWhere: any = {};
-    if (searchQuery) {
-      docWhere.OR = [
-        { title: { contains: searchQuery, mode: 'insensitive' } },
-        { originalFileName: { contains: searchQuery, mode: 'insensitive' } },
-        { extractedText: { contains: searchQuery, mode: 'insensitive' } },
-        { sha256Hash: { contains: searchQuery, mode: 'insensitive' } },
-      ];
+    // 2. Search Documents (Extracted OCR Text + Title + File Name), scoped by accessible cases
+    const docAndConditions: any[] = [];
+    if (caseWhere.AND) {
+      docAndConditions.push({ case: caseWhere });
     }
+
+    if (searchQuery) {
+      docAndConditions.push({
+        OR: [
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          { originalFileName: { contains: searchQuery, mode: 'insensitive' } },
+          { extractedText: { contains: searchQuery, mode: 'insensitive' } },
+          { sha256Hash: { contains: searchQuery, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    const docWhere: any = docAndConditions.length > 0 ? { AND: docAndConditions } : {};
 
     const matchingDocuments = await prisma.document.findMany({
       where: docWhere,

@@ -214,7 +214,7 @@ export default function CaseFileDetailScreen() {
     );
   }
 
-  const isJudicial = user?.role === 'JUDGE';
+  const canIngest = user?.role === 'INVESTIGATION_OFFICER' || user?.role === 'WOMEN_HELP_DESK_OFFICER';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -268,7 +268,7 @@ export default function CaseFileDetailScreen() {
         <Panel
           title={`EXHIBITS (${caseRecord.documents?.length || 0})`}
           action={
-            !isJudicial ? (
+            canIngest ? (
               <Button title="+ INGEST" onPress={() => setShowUploadModal(true)} variant="primary" size="sm" />
             ) : undefined
           }

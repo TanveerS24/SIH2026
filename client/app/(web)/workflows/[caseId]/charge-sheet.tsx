@@ -13,11 +13,16 @@ import {
   LoadingScreen,
 } from '@pramaan/ui';
 import { api } from '../../../../services/api';
+import { useAuthStore } from '../../../../stores/authStore';
 
 export default function ChargeSheetWorkflowScreen() {
   const { caseId } = useLocalSearchParams<{ caseId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+
+  const isIO = user?.role === 'INVESTIGATION_OFFICER';
+  const isProsecutor = user?.role === 'PROSECUTOR';
 
   const [filingNotes, setFilingNotes] = useState('Final police report prepared under Section 173 CrPC / 193 BNSS for judicial scrutiny.');
   const [designatedCourt, setDesignatedCourt] = useState('Special Fast Track Sessions Court for Women & Children, Chennai');
@@ -158,7 +163,7 @@ export default function ChargeSheetWorkflowScreen() {
               BLOCKCHAIN LEDGER ANCHOR TX: {workflow.filingLedgerTxId}
             </Text>
           </View>
-        ) : (
+        ) : isIO ? (
           <View style={styles.filingForm}>
             <Input
               label="DESIGNATED JURISDICTIONAL COURT"
@@ -186,6 +191,18 @@ export default function ChargeSheetWorkflowScreen() {
               variant={workflow.canFile ? 'verified' : 'danger'}
               size="lg"
             />
+          </View>
+        ) : (
+          <View style={styles.prosecutorNoticeBox}>
+            <Text style={styles.prosecutorNoticeTitle}>STATUTORY NOTICE — BNSS SECTION 193</Text>
+            <Text style={styles.prosecutorNoticeText}>
+              Formal lodging of the police report (charge sheet) in court is strictly reserved for the assigned Investigating Officer (IO).
+            </Text>
+            <Text style={styles.prosecutorNoticeSubText}>
+              {isProsecutor
+                ? 'As Public Prosecutor, your statutory remit is pre-trial scrutiny and endorsing mandatory legal requirements above.'
+                : 'Judges and Analysts hold supervisory scrutiny rights over filed records only.'}
+            </Text>
           </View>
         )}
       </Panel>
@@ -343,5 +360,34 @@ const styles = StyleSheet.create({
     color: colors.verifiedDark,
     marginTop: 6,
     fontWeight: '700',
+  },
+  prosecutorNoticeBox: {
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    padding: 16,
+    borderRadius: 2,
+  },
+  prosecutorNoticeTitle: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  prosecutorNoticeText: {
+    fontFamily: typography.fontSans,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  prosecutorNoticeSubText: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });

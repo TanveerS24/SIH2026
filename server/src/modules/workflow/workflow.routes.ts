@@ -90,10 +90,10 @@ export async function workflowRoutes(fastify: FastifyInstance) {
     }) as any
   );
 
-  // 3. File Formal Charge Sheet (Server-Side Hard Enforcement)
+  // 3. File Formal Charge Sheet (Server-Side Hard Enforcement - BNSS Section 193)
   fastify.post(
     '/:id/file',
-    { preHandler: [requireRoles([Role.INVESTIGATION_OFFICER, Role.PROSECUTOR])] },
+    { preHandler: [requireRoles([Role.INVESTIGATION_OFFICER])] },
     (async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       const { id } = request.params;
       const user = request.user;

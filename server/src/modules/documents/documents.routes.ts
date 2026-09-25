@@ -7,18 +7,19 @@ import { ledgerService } from '../../services/ledger.service.js';
 import { documentAIService } from '../../services/ai.service.js';
 import { ragService } from '../../services/rag.service.js';
 import { auditService } from '../../services/audit.service.js';
+import { requireRoles } from '../../plugins/rbac.plugin.js';
 
 import { Role, AuditAction, CustodyAction, DocumentType, DocumentStatus } from '@prisma/client';
 
 export async function documentsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
-  // 1. Upload Document & Anchor in Ledger
-  fastify.post('/upload', async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = request.user;
-    if (user.role === Role.JUDGE) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Judicial officers have read-only access.' });
-    }
+  // 1. Upload Document & Anchor in Ledger (Police Field Officers only)
+  fastify.post(
+    '/upload',
+    { preHandler: [requireRoles([Role.INVESTIGATION_OFFICER, Role.WOMEN_HELP_DESK_OFFICER])] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const user = request.user;
 
     let buffer: Buffer;
     let originalFileName = 'evidence_document.pdf';

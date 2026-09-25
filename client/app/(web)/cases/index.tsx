@@ -182,7 +182,7 @@ export default function CasesRegisterScreen() {
           <Text style={styles.title}>CASE REGISTER</Text>
           <Text style={styles.subtitle}>Digital evidence registry • {cases.length} recorded</Text>
         </View>
-        {user?.role === 'INVESTIGATION_OFFICER' && (
+        {(user?.role === 'INVESTIGATION_OFFICER' || user?.role === 'WOMEN_HELP_DESK_OFFICER') && (
           <Button
             title="+ REGISTER CASE"
             onPress={() => setShowCreateModal(true)}
@@ -207,7 +207,7 @@ export default function CasesRegisterScreen() {
             <Text style={styles.emptyText}>
               {cases.length === 0 ? 'No cases registered yet.' : 'No results match your search.'}
             </Text>
-            {cases.length === 0 && user?.role === 'INVESTIGATION_OFFICER' && (
+            {cases.length === 0 && (user?.role === 'INVESTIGATION_OFFICER' || user?.role === 'WOMEN_HELP_DESK_OFFICER') && (
               <TouchableOpacity style={styles.emptyAction} onPress={() => setShowCreateModal(true)}>
                 <Text style={styles.emptyActionText}>Register first case →</Text>
               </TouchableOpacity>

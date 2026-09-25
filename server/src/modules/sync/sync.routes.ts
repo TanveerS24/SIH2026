@@ -4,13 +4,17 @@ import { prisma } from '../../config/prisma.js';
 import { storageService } from '../../services/storage.service.js';
 import { ledgerService } from '../../services/ledger.service.js';
 import { auditService } from '../../services/audit.service.js';
-import { AuditAction, CustodyAction, DocumentType, DocumentStatus, SyncStatus, CasePriority, SensitivityLevel, CaseStatus } from '@prisma/client';
+import { requireRoles } from '../../plugins/rbac.plugin.js';
+import { AuditAction, CustodyAction, DocumentType, DocumentStatus, SyncStatus, CasePriority, SensitivityLevel, CaseStatus, Role } from '@prisma/client';
 import { BatchSyncRequestSchema } from '@pramaan/shared-types';
 
 export async function syncRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
-  fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post(
+    '/',
+    { preHandler: [requireRoles([Role.INVESTIGATION_OFFICER, Role.WOMEN_HELP_DESK_OFFICER])] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
     const parseResult = BatchSyncRequestSchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.status(400).send({ error: 'Validation', message: parseResult.error.errors[0]?.message });

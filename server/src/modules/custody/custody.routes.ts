@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../config/prisma.js';
-import { checkCaseAccess } from '../../plugins/rbac.plugin.js';
-import { CustodyAction } from '@prisma/client';
+import { checkCaseAccess, requireRoles } from '../../plugins/rbac.plugin.js';
+import { CustodyAction, Role } from '@prisma/client';
 
 export async function custodyRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -40,8 +40,11 @@ export async function custodyRoutes(fastify: FastifyInstance) {
     return reply.status(200).send(formatted);
   });
 
-  // 2. Add Custody Event
-  fastify.post('/:id/custody', { preHandler: [checkCaseAccess as any] }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+  // 2. Add Custody Event (Restricted to case officers & prosecutors)
+  fastify.post(
+    '/:id/custody',
+    { preHandler: [checkCaseAccess as any, requireRoles([Role.INVESTIGATION_OFFICER, Role.WOMEN_HELP_DESK_OFFICER, Role.PROSECUTOR])] },
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const { id } = request.params;
     const user = request.user;
     const body = request.body as any;

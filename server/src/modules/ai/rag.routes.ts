@@ -2,7 +2,8 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../config/prisma.js';
 import { ragService } from '../../services/rag.service.js';
 import { auditService } from '../../services/audit.service.js';
-import { AuditAction } from '@prisma/client';
+import { checkCaseAccess, requireRoles } from '../../plugins/rbac.plugin.js';
+import { AuditAction, Role } from '@prisma/client';
 
 export async function ragRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -68,6 +69,7 @@ export async function ragRoutes(fastify: FastifyInstance) {
    */
   fastify.post(
     '/case-digest/:caseId',
+    { preHandler: [checkCaseAccess as any] },
     async (
       request: FastifyRequest<{ Params: { caseId: string } }>,
       reply: FastifyReply
@@ -102,7 +104,8 @@ export async function ragRoutes(fastify: FastifyInstance) {
    */
   fastify.post(
     '/index-document/:documentId',
-    async (
+    { preHandler: [requireRoles([Role.INVESTIGATION_OFFICER, Role.WOMEN_HELP_DESK_OFFICER, Role.PROSECUTOR])] },
+    (async (
       request: FastifyRequest<{ Params: { documentId: string } }>,
       reply: FastifyReply
     ) => {
@@ -143,7 +146,7 @@ export async function ragRoutes(fastify: FastifyInstance) {
         documentId: doc.id,
         chunksCreated: chunkCount,
       });
-    }
+    }) as any
   );
 
   /**

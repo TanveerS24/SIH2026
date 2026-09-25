@@ -31,21 +31,61 @@ export default function WebLayout() {
   });
   const unreadCount = notifData?.unreadCount || 0;
 
-  const navItems = [
-    { label: 'DASHBOARD', path: '/(web)/dashboard', tag: 'DASH' },
-    { label: 'CASE REGISTER', path: '/(web)/cases', tag: 'CASES' },
-    { label: 'INTELLIGENCE SEARCH', path: '/(web)/search', tag: 'SEARCH' },
-    { label: 'GLOBAL AUDIT TRAIL', path: '/(web)/audit', tag: 'AUDIT' },
-    { label: 'NCRB ANALYTICS', path: '/(web)/analytics', tag: 'STATS' },
-    { label: 'ACCESS REQUESTS', path: '/(web)/access-requests', tag: 'ACCESS' },
+  const allNavItems = [
+    {
+      label: 'DASHBOARD',
+      path: '/(web)/dashboard',
+      tag: 'DASH',
+      roles: ['INVESTIGATION_OFFICER', 'WOMEN_HELP_DESK_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
+    {
+      label: 'CASE REGISTER',
+      path: '/(web)/cases',
+      tag: 'CASES',
+      roles: ['INVESTIGATION_OFFICER', 'WOMEN_HELP_DESK_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
+    {
+      label: 'INTELLIGENCE SEARCH',
+      path: '/(web)/search',
+      tag: 'SEARCH',
+      roles: ['INVESTIGATION_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
+    {
+      label: 'GLOBAL AUDIT TRAIL',
+      path: '/(web)/audit',
+      tag: 'AUDIT',
+      roles: ['PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
+    {
+      label: 'NCRB ANALYTICS',
+      path: '/(web)/analytics',
+      tag: 'STATS',
+      roles: ['INVESTIGATION_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
+    {
+      label: 'ACCESS REQUESTS',
+      path: '/(web)/access-requests',
+      tag: 'ACCESS',
+      roles: ['INVESTIGATION_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
     {
       label: 'NOTIFICATIONS',
       path: '/(web)/notifications',
       tag: 'ALERTS',
       badge: unreadCount > 0 ? unreadCount : undefined,
+      roles: ['INVESTIGATION_OFFICER', 'WOMEN_HELP_DESK_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
     },
-    { label: 'OFFICER PROFILE', path: '/(web)/profile', tag: 'PROFILE' },
+    {
+      label: 'OFFICER PROFILE',
+      path: '/(web)/profile',
+      tag: 'PROFILE',
+      roles: ['INVESTIGATION_OFFICER', 'WOMEN_HELP_DESK_OFFICER', 'PROSECUTOR', 'JUDGE', 'NCRB_ANALYST'],
+    },
   ];
+
+  const navItems = allNavItems.filter((item) =>
+    user?.role ? item.roles.includes(user.role) : true
+  );
 
   const handleNav = (path: string) => {
     setIsDrawerOpen(false);
