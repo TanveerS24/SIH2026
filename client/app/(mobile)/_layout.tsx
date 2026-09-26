@@ -17,6 +17,49 @@ export default function MobileLayout() {
 
   const isHome = pathname === '/(mobile)/home' || pathname === '/home' || pathname === '/' || pathname === '';
   const isCapture = pathname.includes('capture') || pathname.includes('new-record');
+  // Strict Cadre RBAC: Restrict mobile field view exclusively to WOMEN_HELP_DESK_OFFICER
+  if (user && user.role !== 'WOMEN_HELP_DESK_OFFICER') {
+    return (
+      <View style={styles.accessDeniedContainer}>
+        <View style={styles.accessDeniedCard}>
+          <Text style={styles.accessDeniedIcon}>🛡️</Text>
+          <View style={styles.accessDeniedBadgeWrap}>
+            <Text style={styles.accessDeniedBadge}>[RBAC RESTRICTION • 403 FORBIDDEN]</Text>
+          </View>
+          <Text style={styles.accessDeniedTitle}>MOBILE FIELD ACCESS RESTRICTED</Text>
+          <Text style={styles.accessDeniedDesc}>
+            The Mobile Field Terminal (Offline SQLite Queue & On-Scene Spot Ingestion) is strictly restricted to frontline field response cadres (Women Help Desk Officer - WHDO) under Section 180 BNSS.
+          </Text>
+
+          <View style={styles.accessDeniedCadreBox}>
+            <Text style={styles.accessDeniedCadreLabel}>YOUR AUTHENTICATED CADRE:</Text>
+            <Text style={styles.accessDeniedCadreValue}>
+              {user.badgeNumber} • {user.role.replace(/_/g, ' ')}
+            </Text>
+            <Text style={styles.accessDeniedCadreSub}>
+              Authorized Surface: Desktop Case Register & Judicial Scrutiny Portal
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.returnBtn}
+            onPress={() => router.replace('/(web)/dashboard')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.returnBtnText}>RETURN TO AUTHORIZED DESKTOP PORTAL →</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutSecondaryBtn}
+            onPress={logout}
+          >
+            <Text style={styles.logoutSecondaryText}>LOGOUT FROM SESSION</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   const isSync = pathname.includes('sync');
 
   return (
@@ -314,5 +357,116 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textInverse,
     letterSpacing: 0.4,
+  },
+
+  // RBAC Access Denied Screen
+  accessDeniedContainer: {
+    flex: 1,
+    backgroundColor: '#070D12',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  accessDeniedCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    padding: 24,
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'center',
+    gap: 12,
+  },
+  accessDeniedIcon: {
+    fontSize: 40,
+    marginBottom: 4,
+  },
+  accessDeniedBadgeWrap: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  accessDeniedBadge: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F87171',
+    letterSpacing: 0.5,
+  },
+  accessDeniedTitle: {
+    fontFamily: typography.fontSans,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  accessDeniedDesc: {
+    fontFamily: typography.fontSans,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.75)',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  accessDeniedCadreBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 6,
+    padding: 12,
+    width: '100%',
+    alignItems: 'center',
+    gap: 4,
+    marginVertical: 4,
+  },
+  accessDeniedCadreLabel: {
+    fontFamily: typography.fontMono,
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+  },
+  accessDeniedCadreValue: {
+    fontFamily: typography.fontMono,
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  accessDeniedCadreSub: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  returnBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  returnBtnText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textInverse,
+    letterSpacing: 0.5,
+  },
+  logoutSecondaryBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  logoutSecondaryText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
   },
 });

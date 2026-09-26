@@ -7,7 +7,7 @@ import { Role } from '@pramaan/shared-types';
 
 const ROLES_LIST: { role: Role; label: string }[] = [
   { role: 'INVESTIGATION_OFFICER', label: 'Investigation Officer (IO)' },
-  { role: 'WOMEN_HELP_DESK_OFFICER', label: 'Women Help Desk Officer (WHDO)' },
+  { role: 'WOMEN_HELP_DESK_OFFICER', label: 'Field Evidence Officer (FEO)' },
   { role: 'PROSECUTOR', label: 'Public Prosecutor' },
   { role: 'JUDGE', label: 'Honorable Magistrate / Judge' },
   { role: 'NCRB_ANALYST', label: 'NCRB Statistical Analyst' },
@@ -147,7 +147,7 @@ export default function RegisterScreen() {
             label="DEPARTMENT / POLICE WING"
             value={department}
             onChangeText={setDepartment}
-            placeholder="e.g., Women Safety Division, Crime Branch"
+            placeholder="e.g., Crime Scene & Evidence Directorate, Crime Branch"
           />
 
           <Input

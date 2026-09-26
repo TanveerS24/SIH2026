@@ -35,17 +35,18 @@ class SimulatedDocumentAIService implements IDocumentAIService {
       return rawContent;
     }
 
-    // Deterministic simulation based on file naming / type
+    // Deterministic simulation based on file naming / type — only used when buffer isn't readable text
+    // Return a generic template without any case-specific fake data
     const lower = fileName.toLowerCase();
     if (lower.includes('fir')) {
-      return `FIRST INFORMATION REPORT (Under Section 154 Cr.P.C / BNSS)\nState Crime Records Bureau - Women Safety Division\nFIR No: 402/2026\nSections: BNS 64, BNS 70, BNS 351\nJurisdiction: Chennai South (T. Nagar AWPS)\nDetails: Complainant reports repeated cyber stalking, physical surveillance, and aggressive threats near Pondy Bazaar.`;
+      return `FIRST INFORMATION REPORT (Under Section 154 Cr.P.C / BNSS)\nFIR No: \nSections: \nJurisdiction: \nDetails: `;
     } else if (lower.includes('witness') || lower.includes('statement')) {
-      return `DEPOSITION OF WITNESS (Section 180 BNSS)\nWitness: Smt. Lakshmi R., Commercial Shop Owner\nStation: T. Nagar AWPS\nStatement: Witness confirms seeing suspect loitering near commercial complex between 21:30 and 22:30 hrs.`;
+      return `DEPOSITION OF WITNESS (Section 180 BNSS)\nWitness: \nStation: \nStatement: `;
     } else if (lower.includes('forensic') || lower.includes('fsl')) {
-      return `STATE FORENSIC SCIENCE LABORATORY DIGITAL EXAMINATION\nReport: FSL-CHN-CY-2026-8812\nDevice: Mobile handset extraction\nSections: IT Act 66E, BNS 351\nFindings: Digital artifacts and deleted messages recovered. Hash verification intact.`;
+      return `STATE FORENSIC SCIENCE LABORATORY DIGITAL EXAMINATION\nReport: \nDevice: \nSections: \nFindings: `;
     }
 
-    return `EXHIBIT EVIDENCE RECORD\nFileName: ${fileName}\nExtracted text artifact processed by Pramaan OCR Engine.\nDate: ${new Date().toLocaleDateString()}`;
+    return `EXHIBIT EVIDENCE RECORD\nFileName: ${fileName}\nDate: ${new Date().toLocaleDateString()}`;
   }
 
   public async classifyDocument(text: string, fileName: string): Promise<string> {
@@ -69,30 +70,67 @@ class SimulatedDocumentAIService implements IDocumentAIService {
     if (text.includes('66E') || text.toUpperCase().includes('IT ACT')) bnsSections.push('IT Act 66E (Privacy Violation)');
 
     if (bnsSections.length === 0) {
-      bnsSections.push('BNS 70 (Harassment)');
+      // Don't inject fake sections — leave empty so the user must provide them
     }
 
-    // Extract Case or FIR Number
-    let caseNumber = 'TN-2026-001245';
-    const caseMatch = text.match(/(?:Case|FIR|Record)\s*[:#\s]+([A-Z0-9\-\/]+)/i);
-    if (caseMatch && caseMatch[1]) {
+    // Extract Case or FIR Number from actual text
+    let caseNumber: string | undefined;
+    const caseMatch = text.match(/(?:Case|FIR|Record)\s*(?:No\.?)?\s*[:#\s]+([A-Z0-9\-\/]+)/i);
+    if (caseMatch && caseMatch[1] && caseMatch[1].length > 2) {
       caseNumber = caseMatch[1];
     }
+
+    // Extract jurisdiction from text
+    let jurisdiction: string | undefined;
+    const jurisdictionMatch = text.match(/(?:Jurisdiction|Station|Court)[:\s]+([^\n]+)/i);
+    if (jurisdictionMatch && jurisdictionMatch[1]) {
+      jurisdiction = jurisdictionMatch[1].trim();
+    }
+
+    // Extract party names from text using common patterns
+    const detectedParties: ExtractedMetadata['detectedParties'] = {};
+
+    const complainantMatch = text.match(/(?:Complainant|Deponent)[:\s]+(?:Smt\.|Shri\.|Ms\.|Mr\.)?\s*([A-Za-z\s\.]+?)(?:,|\n|\.|age|residing)/i);
+    if (complainantMatch && complainantMatch[1]) {
+      detectedParties.complainant = complainantMatch[1].trim();
+      detectedParties.victim = complainantMatch[1].trim();
+    }
+
+    const witnessMatch = text.match(/(?:Witness)[:\s]+(?:Smt\.|Shri\.|Ms\.|Mr\.)?\s*([A-Za-z\s\.]+?)(?:,|\n|\.|age|residing)/i);
+    if (witnessMatch && witnessMatch[1]) {
+      detectedParties.witness = witnessMatch[1].trim();
+    }
+
+    const suspectMatch = text.match(/(?:Suspect|Accused)[:\s]+(?:Smt\.|Shri\.|Ms\.|Mr\.)?\s*([A-Za-z\s\.]+?)(?:,|\n|\.|age|residing)/i);
+    if (suspectMatch && suspectMatch[1]) {
+      detectedParties.suspect = suspectMatch[1].trim();
+    }
+
+    const officerMatch = text.match(/(?:Inspector|Officer|SI|SHO)[:\s]+([A-Za-z\s\.]+?)(?:,|\n|\.|Badge)/i);
+    if (officerMatch && officerMatch[1]) {
+      detectedParties.officer = officerMatch[1].trim();
+    }
+
+    const stationMatch = text.match(/(?:Station|PS|Police Station)[:\s]+([^\n,]+)/i);
+    if (stationMatch && stationMatch[1]) {
+      detectedParties.station = stationMatch[1].trim();
+    }
+
+    // Confidence score based on how much was actually extracted
+    let extractedFields = 0;
+    if (caseNumber) extractedFields++;
+    if (jurisdiction) extractedFields++;
+    if (bnsSections.length > 0) extractedFields++;
+    if (Object.keys(detectedParties).length > 0) extractedFields++;
+    const confidenceScore = Math.min(0.95, extractedFields * 0.2 + 0.1);
 
     return {
       documentType: docType,
       caseNumber,
       detectedBnsSections: bnsSections,
-      jurisdiction: 'Chennai South / T. Nagar AWPS',
-      detectedParties: {
-        complainant: 'Priya N. (Protected)',
-        victim: 'Priya N. (Protected)',
-        witness: 'Lakshmi R.',
-        suspect: 'Karthik S.',
-        officer: 'Inspector Rajesh Varma',
-        station: 'T. Nagar All-Women Police Station',
-      },
-      confidenceScore: 0.94,
+      jurisdiction,
+      detectedParties,
+      confidenceScore,
       advisoryDisclaimer: this.disclaimer,
     };
   }

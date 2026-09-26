@@ -52,15 +52,15 @@ export async function syncRoutes(fastify: FastifyInstance) {
         }
 
         if (!targetCase) {
-          const generatedCaseNum = payload.caseNumber || `TN-2026-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+          const generatedCaseNum = payload.caseNumber || `CASE-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
           targetCase = await prisma.case.create({
             data: {
               caseNumber: generatedCaseNum,
               title: payload.caseTitle || payload.title || 'Field Recorded Incident',
               description: payload.statementText || payload.officerNotes || 'Field evidence record captured offline.',
-              jurisdiction: user.jurisdiction || 'Chennai South',
-              policeStation: user.department || 'T. Nagar AWPS',
-              bnsSections: payload.bnsSections.length > 0 ? payload.bnsSections : ['BNS 70 (Harassment)'],
+              jurisdiction: user.jurisdiction || '',
+              policeStation: user.department || '',
+              bnsSections: payload.bnsSections.length > 0 ? payload.bnsSections : [],
               priority: CasePriority.HIGH,
               sensitivity: SensitivityLevel.HIGHLY_SENSITIVE,
               status: CaseStatus.UNDER_INVESTIGATION,

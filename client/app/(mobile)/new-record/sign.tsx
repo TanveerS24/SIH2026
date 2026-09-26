@@ -19,23 +19,23 @@ export default function MobileSignScreen() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     const sectionsArray = params.bnsSections
-      ? params.bnsSections.split(',').map((s: string) => s.trim())
-      : ['BNS 70'];
+      ? params.bnsSections.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : [];
 
     const payload = {
-      caseNumber: params.caseNumber || 'TN-2026-001245',
+      caseNumber: params.caseNumber || '',
       title: params.title || 'Field Evidence Record',
       fileName: `field_capture_${Date.now()}.jpg`,
       mimeType: 'image/jpeg',
       documentType: params.captureType || 'PHOTOGRAPHIC_EVIDENCE',
-      statementText: params.statementText || 'Physical evidence photograph recorded in field.',
+      statementText: params.statementText || '',
       capturedAt: params.capturedAt || new Date().toISOString(),
-      capturedLocation: params.location || 'Field Jurisdiction (Chennai)',
-      victimName: params.complainant || 'Protected Witness',
+      capturedLocation: params.location || '',
+      victimName: params.complainant || '',
       bnsSections: sectionsArray,
       photoUri: params.photoUri || undefined,
-      signatureSvg: '<svg height="40" width="120"><path d="M 10 30 Q 30 5 60 25 T 110 20" stroke="#123F5E" stroke-width="2" fill="none"/></svg>',
-      fileSize: 2048,
+      signatureSvg: '',
+      fileSize: 0,
     };
 
     if (isOffline) {

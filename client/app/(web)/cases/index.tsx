@@ -32,13 +32,13 @@ export default function CasesRegisterScreen() {
   const [uploadTitle, setUploadTitle] = useState('');
 
   // Manual mode state
-  const [caseNumber, setCaseNumber] = useState(`TN-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [caseNumber, setCaseNumber] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [jurisdiction, setJurisdiction] = useState(user?.jurisdiction || 'State Cyber Crime Division');
   const [policeStation, setPoliceStation] = useState(user?.department || 'Cyber Crime Police Station');
-  const [bnsSections, setBnsSections] = useState('BNS 318, BNS 66');
-  const [incidentLocation, setIncidentLocation] = useState(user?.jurisdiction || 'Chennai Central Cyber Cell');
+  const [bnsSections, setBnsSections] = useState('');
+  const [incidentLocation, setIncidentLocation] = useState(user?.jurisdiction || '');
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ['cases'],
@@ -65,9 +65,9 @@ export default function CasesRegisterScreen() {
     setUploadTitle('');
     setTitle('');
     setDescription('');
-    setBnsSections('BNS 318, BNS 66');
-    setIncidentLocation(user?.jurisdiction || 'Chennai Central Cyber Cell');
-    setCaseNumber(`TN-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+    setBnsSections('');
+    setIncidentLocation(user?.jurisdiction || '');
+    setCaseNumber('');
     setErrorMessage(null);
   };
 
@@ -120,13 +120,13 @@ export default function CasesRegisterScreen() {
       }
       const safeTitle = (uploadTitle.trim() || uploadedFile.name.replace(/\.[^/.]+$/, ''));
       createMutation.mutate({
-        caseNumber: caseNumber.trim() || `TN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        caseNumber: caseNumber.trim(),
         title: safeTitle.length >= 3 ? safeTitle : `Case: ${safeTitle}`,
         description: `Registered from official FIR document: ${uploadedFile.name}`,
-        jurisdiction: jurisdiction.trim() || user?.jurisdiction || 'State Cyber Crime Division',
-        policeStation: policeStation.trim() || user?.department || 'Cyber Crime Police Station',
-        bnsSections: bnsSections ? bnsSections.split(',').map((s) => s.trim()).filter(Boolean) : ['BNS 318'],
-        incidentLocation: incidentLocation.trim() || 'Jurisdictional Police Station',
+        jurisdiction: jurisdiction.trim() || user?.jurisdiction || '',
+        policeStation: policeStation.trim() || user?.department || '',
+        bnsSections: bnsSections ? bnsSections.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        incidentLocation: incidentLocation.trim(),
         priority: 'HIGH',
         sensitivity: 'HIGHLY_SENSITIVE',
         sourceDocumentBase64: uploadedFile.base64,
@@ -140,13 +140,13 @@ export default function CasesRegisterScreen() {
       }
       const sections = bnsSections.split(',').map((s) => s.trim()).filter(Boolean);
       createMutation.mutate({
-        caseNumber: caseNumber.trim() || `TN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        caseNumber: caseNumber.trim(),
         title: title.trim(),
         description: description.trim() || `Official criminal investigation registered under ${caseNumber}`,
-        jurisdiction: jurisdiction.trim() || user?.jurisdiction || 'State Cyber Crime Division',
-        policeStation: policeStation.trim() || user?.department || 'Cyber Crime Police Station',
-        bnsSections: sections.length > 0 ? sections : ['BNS 318'],
-        incidentLocation: incidentLocation.trim() || 'Jurisdictional Police Station',
+        jurisdiction: jurisdiction.trim() || user?.jurisdiction || '',
+        policeStation: policeStation.trim() || user?.department || '',
+        bnsSections: sections.length > 0 ? sections : [],
+        incidentLocation: incidentLocation.trim(),
         priority: 'HIGH',
         sensitivity: 'HIGHLY_SENSITIVE',
       });

@@ -7,21 +7,12 @@ export default function MobileReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ captureType: string; capturedAt: string; location: string; photoUri?: string }>();
 
-  const isPhotoExhibit = params.captureType === 'PHOTOGRAPHIC_EVIDENCE' || !!params.photoUri;
 
-  const [title, setTitle] = useState(
-    isPhotoExhibit
-      ? 'Physical Exhibit Photograph (Women Safety Help Desk Scene)'
-      : 'Spot Deposition of Witness (T. Nagar)'
-  );
-  const [statementText, setStatementText] = useState(
-    isPhotoExhibit
-      ? 'Direct field capture of recovery scene/physical evidence exhibit. GPS geotag and hardware camera timestamp verified.'
-      : 'Witness confirms observing suspect on black motorcycle loitering near commercial complex at approximately 22:15 hrs.'
-  );
-  const [bnsSections, setBnsSections] = useState('BNS 70 (Harassment), BNS 351 (Criminal Intimidation)');
-  const [complainant, setComplainant] = useState('Lakshmi R. (Witness / Complainant)');
-  const [caseNumber, setCaseNumber] = useState('TN-2026-001245');
+  const [title, setTitle] = useState('');
+  const [statementText, setStatementText] = useState('');
+  const [bnsSections, setBnsSections] = useState('');
+  const [complainant, setComplainant] = useState('');
+  const [caseNumber, setCaseNumber] = useState('');
 
   const handleProceedToSign = () => {
     router.push({
@@ -34,7 +25,7 @@ export default function MobileReviewScreen() {
         caseNumber,
         captureType: params.captureType || 'PHOTOGRAPHIC_EVIDENCE',
         capturedAt: params.capturedAt || new Date().toISOString(),
-        location: params.location || 'T. Nagar AWPS Field Jurisdiction',
+        location: params.location || '',
         photoUri: params.photoUri || '',
       },
     });
@@ -58,17 +49,17 @@ export default function MobileReviewScreen() {
               <Text style={styles.photoGeotag}>GPS ANCHORED</Text>
             </View>
             <Text style={styles.photoSubText} numberOfLines={1}>
-              {params.location || 'Chennai AWPS Field Jurisdiction'} • {new Date().toLocaleTimeString()}
+              {params.location || 'Location not available'} • {new Date().toLocaleTimeString()}
             </Text>
           </View>
         </View>
       ) : null}
 
-      {/* AI Extraction Banner */}
+      {/* Metadata Entry Banner */}
       <View style={styles.ocrBanner}>
-        <Text style={styles.ocrBannerTitle}>[VERIFIED] AUTOMATED METADATA EXTRACTION COMPLETE</Text>
+        <Text style={styles.ocrBannerTitle}>[ACTION REQUIRED] MANUAL METADATA ENTRY</Text>
         <Text style={styles.ocrBannerSub}>
-          Confirm or adjust extracted statutory metadata prior to digital officer signature and blockchain anchoring.
+          Fill in all statutory metadata fields below prior to digital officer signature and blockchain anchoring.
         </Text>
       </View>
 
@@ -78,28 +69,33 @@ export default function MobileReviewScreen() {
           label="ASSOCIATED CASE NUMBER"
           value={caseNumber}
           onChangeText={setCaseNumber}
+          placeholder="e.g., TN-2026-001234"
           monospace
         />
         <Input
           label="EXHIBIT TITLE"
           value={title}
           onChangeText={setTitle}
+          placeholder="e.g., Physical Exhibit Photograph"
         />
         <Input
           label="STATUTORY BNS CLASSIFICATION SECTIONS"
           value={bnsSections}
           onChangeText={setBnsSections}
-          hint="Extracted by Pramaan classifier."
+          placeholder="e.g., BNS 70 (Harassment), BNS 351 (Criminal Intimidation)"
+          hint="Enter applicable BNS sections, comma separated."
         />
         <Input
           label="WITNESS / COMPLAINANT IDENTIFIER"
           value={complainant}
           onChangeText={setComplainant}
+          placeholder="e.g., Full Name (Role)"
         />
         <Input
-          label="EXTRACTED STATEMENT / EXHIBIT DEPOSITION"
+          label="STATEMENT / EXHIBIT DEPOSITION"
           value={statementText}
           onChangeText={setStatementText}
+          placeholder="Enter the statement or description of the evidence..."
           multiline
           numberOfLines={4}
         />

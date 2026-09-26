@@ -143,12 +143,14 @@ export default function WebLayout() {
       <View>
         {isMobile && (
           <View style={styles.drawerQuickActions}>
-            <TouchableOpacity
-              onPress={() => handleNav('/(mobile)/home')}
-              style={styles.drawerFieldBtn}
-            >
-              <Text style={styles.drawerFieldText}>SWITCH TO MOBILE FIELD VIEW →</Text>
-            </TouchableOpacity>
+            {user?.role === 'WOMEN_HELP_DESK_OFFICER' && (
+              <TouchableOpacity
+                onPress={() => handleNav('/(mobile)/home')}
+                style={styles.drawerFieldBtn}
+              >
+                <Text style={styles.drawerFieldText}>SWITCH TO MOBILE FIELD VIEW →</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={logout}
               style={styles.drawerLogoutBtn}
@@ -259,9 +261,11 @@ export default function WebLayout() {
             <TouchableOpacity onPress={() => router.push('/(web)/profile')} style={styles.profileBtn}>
               <Text style={styles.profileBtnText}>PROFILE</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
-              <Text style={styles.fieldViewText}>MOBILE VIEW</Text>
-            </TouchableOpacity>
+            {user?.role === 'WOMEN_HELP_DESK_OFFICER' && (
+              <TouchableOpacity onPress={() => router.push('/(mobile)/home')} style={styles.fieldViewBtn}>
+                <Text style={styles.fieldViewText}>MOBILE VIEW</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
               <Text style={styles.logoutText}>LOGOUT</Text>
             </TouchableOpacity>

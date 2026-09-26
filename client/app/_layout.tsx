@@ -35,6 +35,8 @@ function RootNavigator() {
     const inAuthGroup = segments[0] === '(auth)';
     const isPublicRoute = segments[0] === '+not-found' || (segments as string[]).includes('terms');
 
+    const inMobileGroup = segments[0] === '(mobile)';
+
     if (!isAuthenticated && !inAuthGroup && !isPublicRoute) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
@@ -44,6 +46,9 @@ function RootNavigator() {
       } else {
         router.replace('/(web)/dashboard');
       }
+    } else if (isAuthenticated && inMobileGroup && user?.role !== 'WOMEN_HELP_DESK_OFFICER') {
+      // Statutory RBAC enforcement: non-field cadres restricted from mobile field view
+      router.replace('/(web)/dashboard');
     }
   }, [isAuthenticated, isLoading, segments, user]);
 

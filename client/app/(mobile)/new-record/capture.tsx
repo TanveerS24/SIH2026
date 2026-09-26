@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { colors, typography, Button, Panel } from '@pramaan/ui';
@@ -19,7 +19,75 @@ export default function MobileCaptureScreen() {
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [captureType, setCaptureType] = useState<CaptureType>('PHOTOGRAPHIC_EVIDENCE');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [showGpsModal, setShowGpsModal] = useState(false);
+  const [isAcquiringGps, setIsAcquiringGps] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+
+  // Helper to re-request GPS permission and acquire coordinates
+  const requestGpsPermission = () => {
+    setIsAcquiringGps(true);
+    setGpsError(null);
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsCoords({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+          setGpsError(null);
+          setIsAcquiringGps(false);
+          setShowGpsModal(false);
+        },
+        (err) => {
+          let errorMsg = err.message || 'GPS access denied';
+          if (err.code === 1) {
+            errorMsg = 'Location permission denied by user';
+          } else if (err.code === 2) {
+            errorMsg = 'Position unavailable (GPS disabled or weak signal)';
+          } else if (err.code === 3) {
+            errorMsg = 'Location acquisition timed out';
+          }
+          setGpsError(errorMsg);
+          setIsAcquiringGps(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setGpsError('Geolocation not supported on this platform');
+      setIsAcquiringGps(false);
+    }
+  };
+
+  // Attempt to get real GPS coordinates on mount
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setGpsCoords({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+          setGpsError(null);
+        },
+        (err) => {
+          let msg = err.message || 'GPS access error';
+          if (err.code === 1) msg = 'Location permission denied';
+          else if (err.code === 2) msg = 'Position unavailable (GPS disabled)';
+          else if (err.code === 3) msg = 'Location timed out';
+          setGpsError(msg);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
+      return () => navigator.geolocation.clearWatch(watchId);
+    } else {
+      setGpsError('Geolocation not available on this platform');
+    }
+  }, []);
 
   const toggleCameraFacing = () => {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
@@ -29,8 +97,16 @@ export default function MobileCaptureScreen() {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
-  const handleCapture = async () => {
+  const handleCapture = async (forceWithoutGps = false) => {
     if (isCapturing) return;
+
+    // If GPS is disabled, errored, or not yet acquired, ask permission again!
+    if (!forceWithoutGps && (!gpsCoords || gpsError)) {
+      setShowGpsModal(true);
+      requestGpsPermission();
+      return;
+    }
+
     setIsCapturing(true);
 
     let photoUri: string | undefined;
@@ -47,13 +123,16 @@ export default function MobileCaptureScreen() {
       console.warn('Native camera capture failed, using fallback:', err);
     } finally {
       setIsCapturing(false);
+      setShowGpsModal(false);
       router.push({
         pathname: '/(mobile)/new-record/review',
         params: {
           captureType,
           photoUri: photoUri || '',
           capturedAt: new Date().toISOString(),
-          location: 'T. Nagar AWPS, Chennai (13.0418°N 80.2341°E)',
+          location: gpsCoords
+            ? `${gpsCoords.latitude.toFixed(4)}°N ${gpsCoords.longitude.toFixed(4)}°E (±${Math.round(gpsCoords.accuracy)}m)`
+            : '',
         },
       });
     }
@@ -129,16 +208,31 @@ export default function MobileCaptureScreen() {
                 </Text>
               </View>
 
-              {/* GPS Coordinates Bar */}
-              <View style={styles.gpsBadge}>
-                <Text style={styles.gpsText}>GPS: 13.0418°N 80.2341°E (±2M ACCURACY)</Text>
-              </View>
+              {/* GPS Coordinates Bar & Interactive Re-Request Trigger */}
+              <TouchableOpacity
+                style={[styles.gpsBadge, (!gpsCoords || gpsError) && styles.gpsBadgeWarning]}
+                onPress={() => {
+                  setShowGpsModal(true);
+                  requestGpsPermission();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.gpsText, (!gpsCoords || gpsError) && styles.gpsTextWarning]}>
+                  {gpsCoords
+                    ? `GPS: ${gpsCoords.latitude.toFixed(4)}°N ${gpsCoords.longitude.toFixed(4)}°E (±${Math.round(gpsCoords.accuracy)}M)`
+                    : gpsError
+                    ? `⚠️ GPS DISABLED — TAP TO RE-REQUEST PERMISSION`
+                    : isAcquiringGps
+                    ? '🛰️ ACQUIRING GPS LOCK...'
+                    : '⚠️ GPS INACTIVE — TAP TO ENABLE'}
+                </Text>
+              </TouchableOpacity>
 
               {/* Shutter Button */}
               <View style={styles.shutterRow}>
                 <TouchableOpacity
                   style={[styles.shutter, isCapturing && styles.shutterCapturing]}
-                  onPress={handleCapture}
+                  onPress={() => handleCapture(false)}
                   disabled={isCapturing}
                   activeOpacity={0.8}
                 >
@@ -174,6 +268,60 @@ export default function MobileCaptureScreen() {
           ))}
         </View>
       </Panel>
+      {/* GPS Permission Re-Request Modal */}
+      <Modal visible={showGpsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalIcon}>🛰️</Text>
+              <Text style={styles.modalTitle}>GPS PERMISSION REQUIRED</Text>
+              <Text style={styles.modalSubtitle}>
+                Section 63 of Bharatiya Sakshya Adhiniyam mandates verifiable hardware geotagging for evidence admissibility in court.
+              </Text>
+            </View>
+
+            {gpsError ? (
+              <View style={styles.gpsErrorBanner}>
+                <Text style={styles.gpsErrorTitle}>[GPS STATUS: DISABLED / BLOCKED]</Text>
+                <Text style={styles.gpsErrorText}>{gpsError}</Text>
+                <Text style={styles.gpsErrorHelp}>
+                  Please allow Location permission in your browser or device settings to attach verifiable crime scene coordinates.
+                </Text>
+              </View>
+            ) : isAcquiringGps ? (
+              <View style={styles.gpsAcquiringBanner}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.gpsAcquiringText}>Re-requesting device GPS lock...</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.modalActions}>
+              <Button
+                title={isAcquiringGps ? "ACQUIRING LOCATION..." : "RE-REQUEST GPS PERMISSION"}
+                onPress={requestGpsPermission}
+                disabled={isAcquiringGps}
+                variant="primary"
+                size="md"
+              />
+              <Button
+                title="PROCEED WITHOUT GPS (MANUAL ENTRY)"
+                onPress={() => {
+                  setShowGpsModal(false);
+                  handleCapture(true);
+                }}
+                variant="secondary"
+                size="sm"
+              />
+              <TouchableOpacity
+                onPress={() => setShowGpsModal(false)}
+                style={styles.modalCancelBtn}
+              >
+                <Text style={styles.modalCancelText}>CANCEL CAPTURE</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -446,5 +594,111 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '700',
+  },
+
+  gpsBadgeWarning: {
+    backgroundColor: 'rgba(180, 83, 9, 0.85)',
+    borderColor: '#F59E0B',
+  },
+  gpsTextWarning: {
+    color: '#FEF3C7',
+    fontWeight: '700',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
+    gap: 16,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalIcon: {
+    fontSize: 32,
+  },
+  modalTitle: {
+    fontFamily: typography.fontSans,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  gpsErrorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 6,
+    padding: 12,
+    gap: 6,
+  },
+  gpsErrorTitle: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F87171',
+    letterSpacing: 0.5,
+  },
+  gpsErrorText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    color: '#FECACA',
+    lineHeight: 15,
+  },
+  gpsErrorHelp: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    color: '#E2E8F0',
+    marginTop: 4,
+    lineHeight: 14,
+  },
+  gpsAcquiringBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 6,
+  },
+  gpsAcquiringText: {
+    fontFamily: typography.fontMono,
+    fontSize: 11,
+    color: '#60A5FA',
+  },
+  modalActions: {
+    gap: 10,
+    marginTop: 4,
+  },
+  modalCancelBtn: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  modalCancelText: {
+    fontFamily: typography.fontSans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
   },
 });

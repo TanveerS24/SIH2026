@@ -13,7 +13,7 @@ export interface DemoAccount {
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   { email: 'io@example.gov', role: 'INVESTIGATION_OFFICER', label: 'Investigation Officer (IO)', badge: 'TN-IO-4892' },
-  { email: 'helpdesk@example.gov', role: 'WOMEN_HELP_DESK_OFFICER', label: 'Women Help Desk Officer', badge: 'TN-WHD-1044' },
+  { email: 'helpdesk@example.gov', role: 'WOMEN_HELP_DESK_OFFICER', label: 'Field Evidence Officer (FEO)', badge: 'TN-FEO-1044' },
   { email: 'prosecutor@example.gov', role: 'PROSECUTOR', label: 'Public Prosecutor', badge: 'TN-PP-0381' },
   { email: 'judge@example.gov', role: 'JUDGE', label: 'Hon. Magistrate / Judge', badge: 'TN-JUD-0012' },
   { email: 'analyst@example.gov', role: 'NCRB_ANALYST', label: 'NCRB Statistical Analyst', badge: 'NCRB-STAT-992' },
