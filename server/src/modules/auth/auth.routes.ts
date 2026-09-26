@@ -22,14 +22,14 @@ const ROLE_PERSONAS: Record<Role, { email: string; name: string; badgeNumber: st
     email: 'io@example.gov',
     name: 'Inspector Rajesh Varma',
     badgeNumber: 'TN-IO-4892',
-    department: 'Women Safety Division, Crime Branch',
+    department: 'Crime Branch & Investigation Directorate',
     jurisdiction: 'Chennai Central',
   },
   WOMEN_HELP_DESK_OFFICER: {
     email: 'helpdesk@example.gov',
     name: 'Sub-Inspector Ananya Swaminathan',
-    badgeNumber: 'TN-WHD-1044',
-    department: 'Women Help Desk, T. Nagar PS',
+    badgeNumber: 'TN-FEO-1044',
+    department: 'Field Evidence Collection Unit, T. Nagar PS',
     jurisdiction: 'Chennai South',
   },
   PROSECUTOR: {

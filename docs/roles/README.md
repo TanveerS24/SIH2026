@@ -11,7 +11,7 @@ Click any role below to view its dedicated, comprehensive specification detailin
 | Role Identifier | Official Cadre Title | Demo Persona | Primary Surface | Detailed Specification |
 | :--- | :--- | :--- | :--- | :--- |
 | `INVESTIGATION_OFFICER` | **Investigation Officer (IO)** | Inspector Rajesh Varma (`TN-IO-4892`) | Web Portal & Responsive UI | [Read Specification →](file:///c:/Users/Tanveer/Projects/pramaan/docs/roles/INVESTIGATION_OFFICER.md) |
-| `WOMEN_HELP_DESK_OFFICER` | **Women Help Desk Officer (WHDO)** | Sub-Inspector Ananya Swaminathan (`TN-WHD-1044`) | Mobile Field App & Offline Queue | [Read Specification →](file:///c:/Users/Tanveer/Projects/pramaan/docs/roles/WOMEN_HELP_DESK_OFFICER.md) |
+| `WOMEN_HELP_DESK_OFFICER` | **Field Evidence Officer (FEO)** | Sub-Inspector Ananya Swaminathan (`TN-FEO-1044`) | Mobile Field App & Offline Queue | [Read Specification →](file:///c:/Users/Tanveer/Projects/pramaan/docs/roles/WOMEN_HELP_DESK_OFFICER.md) |
 | `PROSECUTOR` | **Public Prosecutor** | Advocate Meera Sundaram (`TN-PP-0381`) | Legal Scrutiny Web Portal | [Read Specification →](file:///c:/Users/Tanveer/Projects/pramaan/docs/roles/PROSECUTOR.md) |
 | `JUDGE` | **Hon. Magistrate / Judge** | Hon. Justice K. Ramanathan (`TN-JUD-0012`) | Courtroom Chamber Web Portal | [Read Specification →](file:///c:/Users/Tanveer/Projects/pramaan/docs/roles/JUDGE.md) |
 | `NCRB_ANALYST` | **NCRB Statistical Analyst** | Dr. Siddharth Sen (`NCRB-STAT-992`) | National Analytics & Intelligence | [Read Specification →](file:///c:/Users/Tanveer/Projects/pramaan/docs/roles/NCRB_ANALYST.md) |
@@ -22,7 +22,7 @@ Click any role below to view its dedicated, comprehensive specification detailin
 
 The following matrix summarizes the precise permissions and restrictions enforced across all 5 cadres:
 
-| Feature / Operation | Investigation Officer (IO) | Women Help Desk Officer (WHDO) | Public Prosecutor | Hon. Magistrate / Judge | NCRB Statistical Analyst |
+| Feature / Operation | Investigation Officer (IO) | Field Evidence Officer (FEO) | Public Prosecutor | Hon. Magistrate / Judge | NCRB Statistical Analyst |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Register New Police FIR / Case** | **YES** | Assigned Cases | NO | NO | NO |
 | **Upload Raw Crime Scene Evidence** | **YES** | **YES** (Field) | NO | NO | NO |

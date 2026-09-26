@@ -37,7 +37,7 @@ export default function TermsScreen() {
         <View style={styles.clause}>
           <Text style={styles.clauseTitle}>3. ROLE-BASED ACCESS CONTROL (RBAC) & OFFICIAL SECRECY</Text>
           <Text style={styles.clauseBody}>
-            Access to sensitive case records, victim identities, and protected forensic transcripts is strictly segmented by statutory cadre: Investigation Officers, Women Help Desk Personnel, Public Prosecutors, Judicial Magistrates, and NCRB Statistical Analysts. Attempting to bypass role-based access restrictions or export victim PII constitutes an offense under the Official Secrets Act, 1923 and relevant sections of the Bharatiya Nyaya Sanhita, 2023.
+            Access to sensitive case records, victim identities, and protected forensic transcripts is strictly segmented by statutory cadre: Investigation Officers, Field Evidence Officers, Public Prosecutors, Judicial Magistrates, and NCRB Statistical Analysts. Attempting to bypass role-based access restrictions or export victim PII constitutes an offense under the Official Secrets Act, 1923 and relevant sections of the Bharatiya Nyaya Sanhita, 2023.
           </Text>
         </View>
 

@@ -3,7 +3,7 @@
 **Cadre**: Investigation & Enforcement Directorate  
 **Platform**: Pramaan Digital Evidence & Chain-of-Custody Ledger  
 **Standard Demo Persona**: Inspector Rajesh Varma (`TN-IO-4892`)  
-**Department**: Women Safety Division, Crime Branch  
+**Department**: Crime Branch & Investigation Directorate  
 **Primary Surface**: Web Portal & Mobile Responsive Desktop View  
 
 ---

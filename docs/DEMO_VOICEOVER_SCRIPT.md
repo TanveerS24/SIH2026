@@ -9,7 +9,7 @@ This document provides the complete, highly efficient, word-for-word voiceover s
 * "Welcome to the demonstration of **Pramaan (प्रमाण)** — an offline-first, tamper-evident digital evidence and chain-of-custody platform engineered for Indian law enforcement and judicial scrutiny."
 * "Under India’s new criminal codes — the **Bharatiya Nyaya Sanhita (BNS)**, **Bharatiya Nagarik Suraksha Sanhita (BNSS)**, and **Bharatiya Sakshya Adhiniyam (BSA) 2023** — evidence management cannot be a monolithic system where any user can perform any action."
 * "To guarantee legal admissibility and constitutional due process, Pramaan strictly segregates permissions across **5 distinct institutional cadres**:"
-  1. **Women Help Desk Officer (WHDO):** Frontline on-scene emergency responder.
+  1. **Field Evidence Officer (FEO):** Frontline on-scene evidence capture and first response authority.
   2. **Investigation Officer (IO):** Operational detective compiling forensic proof and charge sheets.
   3. **Public Prosecutor:** Independent pre-trial legal scrutiny authority representing the State.
   4. **Honorable Magistrate / Judge:** Neutral courtroom adjudicator admitting evidence and pronouncing verdict.
@@ -18,15 +18,15 @@ This document provides the complete, highly efficient, word-for-word voiceover s
 
 ---
 
-## 2. Role 1: Women Help Desk Officer (WHDO) — Frontline Field Response
+## 2. Role 1: Field Evidence Officer (FEO) — Frontline Field Evidence Capture
 
 ### Operational Mandate
-* Frontline emergency responder for offenses involving women, children, and vulnerable complainants.
+* Frontline first responder and on-scene evidence collection authority.
 * Operates in high-stress, potentially zero-connectivity field conditions to capture pristine on-scene evidence before contamination.
 
 ### Complete Feature Set
 * **Field Home Dashboard (`/(mobile)/home`):**
-  * Displays officer credentials, badge ID (`TN-WHD-1044`), and precinct jurisdiction.
+  * Displays officer credentials, badge ID (`TN-FEO-1044`), and precinct jurisdiction.
   * Real-time network monitor pulsing `ONLINE` (green) or `OFFLINE` (amber).
   * Device SQLite queue counter showing unanchored field records stored locally on the phone.
   * Rapid one-touch action trigger: `CAPTURE EVIDENCE`.
@@ -225,7 +225,7 @@ This document provides the complete, highly efficient, word-for-word voiceover s
 
 ## 8. Master Cross-Cadre Permission Matrix
 
-| Operation / Feature | WHDO (Field) | IO (Investigation) | Public Prosecutor | Hon. Magistrate / Judge | NCRB Analyst |
+| Operation / Feature | FEO (Field Evidence) | IO (Investigation) | Public Prosecutor | Hon. Magistrate / Judge | NCRB Analyst |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Register New FIR / Case** | Assigned Only | **YES** | BLOCKED | BLOCKED | BLOCKED |
 | **On-Scene Field Capture (GPS/Sign)** | **YES** | NO | NO | NO | NO |
@@ -245,5 +245,8 @@ This document provides the complete, highly efficient, word-for-word voiceover s
 ## 9. Closing Summary
 
 * "To summarize, Pramaan is not just an application — it is an end-to-end digital implementation of Indian criminal jurisprudence."
-* "Every piece of evidence is captured on the ground with real hardware GPS, hashed authoritatively by the server, anchored immutably to the ledger, and verified across all five institutional tiers."
+* "The **Field Evidence Officer** captures untampered physical and documentary evidence at the scene with live GPS, offline SQLite queueing, and non-repudiation digital signatures."
+* "The **Investigation Officer** compiles the forensic dossier, extracts statutory BNS sections with AI, and fulfills mandatory pre-filing workflow gates."
+* "The **Public Prosecutor** independently audits the legal sufficiency and cryptographic hash integrity of the case file."
+* "And the **Judge** adjudicates with complete transparency under a strict read-only lock, backed by Section 63 BSA digital evidence certificates."
 * "With our zero-hallucination Strict RAG intelligence and strict server-side RBAC, Pramaan guarantees that digital evidence remains uncompromised from the crime scene all the way to final judicial conviction."

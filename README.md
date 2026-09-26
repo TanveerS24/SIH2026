@@ -1,6 +1,6 @@
 # Pramaan (प्रमाण)
 ### Secure Digital Document, Evidence & Chain-of-Custody Management Platform
-**Women Safety Division • National Crime Records Body (NCRB Prototype)**
+**National Crime Records Bureau (NCRB) • Ministry of Home Affairs**
 
 ---
 
@@ -96,7 +96,7 @@ All seeded demo accounts use the standard password: `DemoPass123!` and TOTP bypa
 | Role | Demo Email | Badge Number | Permissions |
 | :--- | :--- | :--- | :--- |
 | **Investigation Officer (IO)** | `io@example.gov` | `TN-IO-4892` | Assigned case management, evidence upload, OCR confirmation, charge sheet filing |
-| **Women Help Desk Officer (WHDO)** | `helpdesk@example.gov` | `TN-WHD-1044` | Field camera capture, offline SQLite queueing, spot statement deposition |
+| **Field Evidence Officer (FEO)** | `helpdesk@example.gov` | `TN-FEO-1044` | On-scene field camera capture, offline SQLite queueing, spot statement deposition |
 | **Public Prosecutor** | `prosecutor@example.gov` | `TN-PP-0381` | Filed case scrutiny, charge-sheet prerequisite validation, evidence verification |
 | **Hon. Magistrate / Judge** | `judge@example.gov` | `TN-JUD-0012` | Read-only judicial scrutiny, tamper verification seal (mutation blocked) |
 | **NCRB Statistical Analyst** | `analyst@example.gov` | `NCRB-STAT-992` | De-identified aggregate dashboards; individual cases require elevated access |

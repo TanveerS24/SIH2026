@@ -28,7 +28,7 @@ export default function MobileLayout() {
           </View>
           <Text style={styles.accessDeniedTitle}>MOBILE FIELD ACCESS RESTRICTED</Text>
           <Text style={styles.accessDeniedDesc}>
-            The Mobile Field Terminal (Offline SQLite Queue & On-Scene Spot Ingestion) is strictly restricted to frontline field response cadres (Women Help Desk Officer - WHDO) under Section 180 BNSS.
+            The Mobile Field Terminal (Offline SQLite Queue & On-Scene Spot Ingestion) is strictly restricted to frontline field response cadres (Field Evidence Officer - FEO) under Section 180 BNSS.
           </Text>
 
           <View style={styles.accessDeniedCadreBox}>
