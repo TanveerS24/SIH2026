@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
+import * as Location from 'expo-location';
 import { colors, typography, Button, Panel } from '@pramaan/ui';
 
 const EVIDENCE_TYPES = [
@@ -25,68 +26,91 @@ export default function MobileCaptureScreen() {
   const [isAcquiringGps, setIsAcquiringGps] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
-  // Helper to re-request GPS permission and acquire coordinates
-  const requestGpsPermission = () => {
+  // Request GPS permission and acquire coordinates using expo-location
+  const requestGpsPermission = async () => {
     setIsAcquiringGps(true);
     setGpsError(null);
 
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setGpsCoords({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-          setGpsError(null);
-          setIsAcquiringGps(false);
-          setShowGpsModal(false);
-        },
-        (err) => {
-          let errorMsg = err.message || 'GPS access denied';
-          if (err.code === 1) {
-            errorMsg = 'Location permission denied by user';
-          } else if (err.code === 2) {
-            errorMsg = 'Position unavailable (GPS disabled or weak signal)';
-          } else if (err.code === 3) {
-            errorMsg = 'Location acquisition timed out';
-          }
-          setGpsError(errorMsg);
-          setIsAcquiringGps(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      setGpsError('Geolocation not supported on this platform');
+    try {
+      // Ask for foreground location permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== 'granted') {
+        setGpsError('Location permission denied. Please enable it in device settings.');
+        setIsAcquiringGps(false);
+        return;
+      }
+
+      // Check if GPS provider is enabled
+      const providerEnabled = await Location.hasServicesEnabledAsync();
+      if (!providerEnabled) {
+        setGpsError('GPS is disabled on this device. Please enable Location Services.');
+        setIsAcquiringGps(false);
+        return;
+      }
+
+      // Fetch current position with high accuracy
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      setGpsCoords({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        accuracy: loc.coords.accuracy ?? 0,
+      });
+      setGpsError(null);
+      setShowGpsModal(false);
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to acquire GPS coordinates';
+      setGpsError(msg);
+    } finally {
       setIsAcquiringGps(false);
     }
   };
 
-  // Attempt to get real GPS coordinates on mount
+  // Attempt GPS on mount
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          setGpsCoords({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-          setGpsError(null);
-        },
-        (err) => {
-          let msg = err.message || 'GPS access error';
-          if (err.code === 1) msg = 'Location permission denied';
-          else if (err.code === 2) msg = 'Position unavailable (GPS disabled)';
-          else if (err.code === 3) msg = 'Location timed out';
-          setGpsError(msg);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
-      );
-      return () => navigator.geolocation.clearWatch(watchId);
-    } else {
-      setGpsError('Geolocation not available on this platform');
-    }
+    let subscription: Location.LocationSubscription | null = null;
+
+    const startWatching = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setGpsError('Location permission denied');
+          return;
+        }
+
+        const providerEnabled = await Location.hasServicesEnabledAsync();
+        if (!providerEnabled) {
+          setGpsError('GPS is disabled on this device');
+          return;
+        }
+
+        subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 3000,
+            distanceInterval: 0,
+          },
+          (loc) => {
+            setGpsCoords({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              accuracy: loc.coords.accuracy ?? 0,
+            });
+            setGpsError(null);
+          }
+        );
+      } catch (err: any) {
+        setGpsError(err?.message || 'GPS acquisition error');
+      }
+    };
+
+    startWatching();
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   const toggleCameraFacing = () => {
