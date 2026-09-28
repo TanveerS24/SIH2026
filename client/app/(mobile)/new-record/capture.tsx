@@ -20,6 +20,7 @@ export default function MobileCaptureScreen() {
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [captureType, setCaptureType] = useState<CaptureType>('PHOTOGRAPHIC_EVIDENCE');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [showGpsModal, setShowGpsModal] = useState(false);
@@ -124,41 +125,56 @@ export default function MobileCaptureScreen() {
   const handleCapture = async (forceWithoutGps = false) => {
     if (isCapturing) return;
 
-    // If GPS is disabled, errored, or not yet acquired, ask permission again!
+    // If GPS is not yet acquired, show modal to re-request
     if (!forceWithoutGps && (!gpsCoords || gpsError)) {
       setShowGpsModal(true);
       requestGpsPermission();
       return;
     }
 
-    setIsCapturing(true);
+    if (!permission?.granted) {
+      setCaptureError('Camera permission is required to capture evidence.');
+      return;
+    }
 
-    let photoUri: string | undefined;
+    if (!cameraRef.current) {
+      setCaptureError('Camera is not ready. Please wait a moment.');
+      return;
+    }
+
+    setIsCapturing(true);
+    setCaptureError(null);
+    setShowGpsModal(false);
 
     try {
-      if (cameraRef.current && permission?.granted) {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.85,
-          skipProcessing: false,
-        });
-        photoUri = photo?.uri;
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.85,
+        skipProcessing: false,
+      });
+
+      if (!photo?.uri) {
+        setCaptureError('Photo capture returned no image. Please try again.');
+        setIsCapturing(false);
+        return;
       }
-    } catch (err) {
-      console.warn('Native camera capture failed, using fallback:', err);
-    } finally {
-      setIsCapturing(false);
-      setShowGpsModal(false);
+
+      // Navigate only when we have a valid photo URI
       router.push({
         pathname: '/(mobile)/new-record/review',
         params: {
           captureType,
-          photoUri: photoUri || '',
+          photoUri: photo.uri,
           capturedAt: new Date().toISOString(),
           location: gpsCoords
             ? `${gpsCoords.latitude.toFixed(4)}°N ${gpsCoords.longitude.toFixed(4)}°E (±${Math.round(gpsCoords.accuracy)}m)`
             : '',
         },
       });
+    } catch (err: any) {
+      console.warn('Camera capture error:', err);
+      setCaptureError(err?.message || 'Capture failed. Please try again.');
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -265,6 +281,9 @@ export default function MobileCaptureScreen() {
                 <Text style={styles.shutterLabel}>
                   {isCapturing ? 'CAPTURING EVIDENCE...' : 'PRESS SHUTTER TO CAPTURE'}
                 </Text>
+                {captureError ? (
+                  <Text style={styles.captureErrorText}>⚠️ {captureError}</Text>
+                ) : null}
               </View>
             </View>
           </View>
@@ -545,6 +564,18 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  captureErrorText: {
+    fontFamily: typography.fontSans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FCA5A5',
+    textAlign: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginTop: 4,
   },
 
   permissionBox: {
